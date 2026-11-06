@@ -12,9 +12,9 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 final class ContractService implements ContractServiceInterface
 {
-    public function list(int $perPage): LengthAwarePaginator
+    public function list(int $perPage, int $page): LengthAwarePaginator
     {
-        return Contract::query()->orderBy('id')->paginate($perPage);
+        return Contract::query()->orderBy('id')->paginate($perPage, page: $page);
     }
 
     public function create(array $data): Contract

@@ -17,17 +17,31 @@ return [
     'enabled' => (bool) env('API_LOGGING_ENABLED', true),
 
     /*
-     * Header names (lowercase) whose values are replaced by "***".
+     * Header names (lowercase) whose values are replaced by "***". Credentials
+     * of any kind, including the php-auth-* values that PHP derives from a
+     * Basic or Digest Authorization header.
      */
     'masked_headers' => [
         'authorization',
+        'proxy-authorization',
         'cookie',
+        'php-auth-user',
         'php-auth-pw',
+        'php-auth-digest',
+        'x-api-key',
+        'x-csrf-token',
+        'x-xsrf-token',
     ],
 
     /*
-     * Request and response bodies longer than this (in characters) are truncated.
+     * Request and response bodies longer than this (in bytes) are truncated.
      */
-    'max_body_length' => 65535,
+    'max_body_bytes' => 65535,
+
+    /*
+     * Log rows older than this many days are deleted by the scheduled
+     * model:prune command (see routes/console.php).
+     */
+    'retention_days' => (int) env('API_LOG_RETENTION_DAYS', 30),
 
 ];

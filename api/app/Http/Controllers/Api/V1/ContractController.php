@@ -31,10 +31,12 @@ final class ContractController extends Controller
      * Paginated, ordered by id. The devices of the contracts are not included.
      */
     #[QueryParameter('per_page', description: 'Items per page, clamped to 1–100.', type: 'int', default: 15)]
-    #[QueryParameter('page', description: 'Page number.', type: 'int', default: 1)]
+    #[QueryParameter('page', description: 'Page number, at least 1.', type: 'int', default: 1)]
     public function index(Request $request): AnonymousResourceCollection
     {
-        return ContractResource::collection($this->contracts->list($this->perPage($request)));
+        $perPage = $this->perPage($request);
+
+        return ContractResource::collection($this->contracts->list($perPage, $this->page($request, $perPage)));
     }
 
     /**

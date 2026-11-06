@@ -7,6 +7,7 @@ use App\Models\Contract;
 use App\Models\ContractDevice;
 use App\Models\Device;
 use App\Services\Interfaces\DeviceServiceInterface;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
 
@@ -30,6 +31,10 @@ dataset('api errors', [
     '409 business rule' => [
         fn (): TestResponse => $this->deleteJson('/api/v1/devices/' . ContractDevice::factory()->create()->device_id),
         409,
+    ],
+    '415 body is not JSON' => [
+        fn (): TestResponse => $this->post('/api/v1/devices', ['model' => 'X'], ['Accept' => 'application/json']),
+        415,
     ],
     '422 validation' => [
         fn (): TestResponse => $this->postJson('/api/v1/devices', []),
@@ -111,6 +116,53 @@ it('answers 409 when a concurrent request takes the serial number first', functi
     expect(ContractDevice::query()->where('serial_number', 'SN-RACE-1')->count())->toBe(1);
 });
 
+it('answers 409 when a device is assigned while it is being deleted', function (): void {
+    $device = Device::factory()->create();
+    $contract = Contract::factory()->create();
+
+    // Simulates the race: the service found no assignment, then another request
+    // assigns the device right before this one deletes it.
+    Device::deleting(function (Device $deleting) use ($contract): void {
+        ContractDevice::factory()->for($contract)->for($deleting)->create();
+    });
+
+    $this->deleteJson("/api/v1/devices/{$device->id}")
+        ->assertConflict()
+        ->assertExactJson(['message' => 'A related record was changed by a concurrent request.']);
+
+    $this->assertModelExists($device);
+});
+
+it('answers 409 when the device is deleted while it is being assigned', function (): void {
+    $device = Device::factory()->create();
+    $contract = Contract::factory()->create();
+
+    // Simulates the race: the device passed the exists rule, then another request deletes it.
+    ContractDevice::creating(function (ContractDevice $assignment): void {
+        DB::table('devices')->where('id', $assignment->device_id)->delete();
+    });
+
+    $this->postJson("/api/v1/contracts/{$contract->id}/devices", [
+        'device_id' => $device->id,
+        'serial_number' => 'SN-RACE-2',
+    ])
+        ->assertConflict()
+        ->assertExactJson(['message' => 'A related record was changed by a concurrent request.']);
+
+    expect(ContractDevice::query()->count())->toBe(0);
+});
+
+it('keeps other database errors a 500 without details', function (): void {
+    $cause = new PDOException('Base table or view not found');
+    $cause->errorInfo = ['42S02', 1146, 'Table missing'];
+
+    $this->mock(DeviceServiceInterface::class)
+        ->shouldReceive('list')
+        ->andThrow(new QueryException('mysql', 'select * from devices', [], $cause));
+
+    $this->getJson('/api/v1/devices')->assertInternalServerError()->assertExactJson(['message' => 'Server Error']);
+});
+
 it('limits API requests to 60 per minute', function (): void {
     foreach (range(1, 60) as $attempt) {
         $this->getJson('/api/v1/devices')->assertOk();
@@ -122,6 +174,22 @@ it('limits API requests to 60 per minute', function (): void {
         ->assertExactJson(['message' => 'Too Many Attempts.']);
 
     expect(ApiLog::query()->latest('id')->value('status_code'))->toBe(429);
+});
+
+it('counts unknown API routes against the rate limit too', function (): void {
+    // Every request is logged, so an unthrottled route would let a client fill the log without limit.
+    foreach (range(1, 60) as $attempt) {
+        $this->postJson('/api/v1/unknown', ['padding' => str_repeat('x', 1000)])->assertNotFound();
+    }
+
+    $this->postJson('/api/v1/unknown')->assertTooManyRequests()->assertHeader('Retry-After');
+    $this->getJson('/api/v1/devices')->assertTooManyRequests();
+});
+
+it('does not apply the API rate limit outside the API', function (): void {
+    foreach (range(1, 61) as $attempt) {
+        $this->get('/up')->assertOk();
+    }
 });
 
 it('keeps the HTML error page outside the API', function (): void {

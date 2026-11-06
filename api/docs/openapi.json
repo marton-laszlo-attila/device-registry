@@ -3,7 +3,7 @@
     "info": {
         "title": "Device Registry API",
         "version": "1.0.0",
-        "description": "REST API of a device registry: device types, contracts and the device units on them.\n\n- A **device** is a device *type* (manufacturer + model), not a physical unit.\n- A physical unit is a device **assigned to a contract** with its own **serial number**.\n  The same device type can be on several contracts, or several times on one contract,\n  but every serial number is unique across all contracts.\n- Devices and contracts that are in use cannot be deleted (409 Conflict).\n- Every error is JSON: `{\"message\": \"...\"}`, plus `errors` per field on 422.\n- Requests are limited to 60 per minute per client IP."
+        "description": "REST API of a device registry: device types, contracts and the device units on them.\n\n- A **device** is a device *type* (manufacturer + model), not a physical unit.\n- A physical unit is a device **assigned to a contract** with its own **serial number**.\n  The same device type can be on several contracts, or several times on one contract,\n  but every serial number is unique across all contracts.\n- Devices and contracts that are in use cannot be deleted (409 Conflict).\n- Request bodies must be JSON (`Content-Type: application/json`), otherwise 415.\n- Every error is JSON: `{\"message\": \"...\"}`, plus `errors` per field on 422.\n- Requests are limited to 60 per minute per client IP."
     },
     "servers": [
         {
@@ -43,7 +43,7 @@
                     {
                         "name": "page",
                         "in": "query",
-                        "description": "Page number.",
+                        "description": "Page number, at least 1.",
                         "schema": {
                             "type": "integer",
                             "default": 1
@@ -397,7 +397,7 @@
                     {
                         "name": "page",
                         "in": "query",
-                        "description": "Page number.",
+                        "description": "Page number, at least 1.",
                         "schema": {
                             "type": "integer",
                             "default": 1
@@ -864,6 +864,7 @@
                     },
                     "serial_number": {
                         "type": "string",
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9._\\/-]*$",
                         "maxLength": 100
                     }
                 },

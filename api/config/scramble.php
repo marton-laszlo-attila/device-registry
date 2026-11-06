@@ -65,6 +65,7 @@ return [
               The same device type can be on several contracts, or several times on one contract,
               but every serial number is unique across all contracts.
             - Devices and contracts that are in use cannot be deleted (409 Conflict).
+            - Request bodies must be JSON (`Content-Type: application/json`), otherwise 415.
             - Every error is JSON: `{"message": "..."}`, plus `errors` per field on 422.
             - Requests are limited to 60 per minute per client IP.
             MD,
@@ -168,8 +169,12 @@ return [
      */
     'flatten_deep_query_parameters' => true,
 
+    /*
+     * Failed logins are limited to 10 per minute per client IP (see AppServiceProvider).
+     */
     'middleware' => [
         'web',
+        'throttle:docs',
         DocsBasicAuth::class,
     ],
 

@@ -14,7 +14,7 @@ interface ContractServiceInterface
     /**
      * @return LengthAwarePaginator<int, Contract>
      */
-    public function list(int $perPage): LengthAwarePaginator;
+    public function list(int $perPage, int $page): LengthAwarePaginator;
 
     /**
      * @param array{

@@ -34,10 +34,12 @@ final class DeviceController extends Controller
      * Paginated, ordered by id.
      */
     #[QueryParameter('per_page', description: 'Items per page, clamped to 1–100.', type: 'int', default: 15)]
-    #[QueryParameter('page', description: 'Page number.', type: 'int', default: 1)]
+    #[QueryParameter('page', description: 'Page number, at least 1.', type: 'int', default: 1)]
     public function index(Request $request): AnonymousResourceCollection
     {
-        return DeviceResource::collection($this->devices->list($this->perPage($request)));
+        $perPage = $this->perPage($request);
+
+        return DeviceResource::collection($this->devices->list($perPage, $this->page($request, $perPage)));
     }
 
     /**

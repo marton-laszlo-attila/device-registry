@@ -28,6 +28,15 @@ final class ConflictException extends ApiException
         return new self('The resource conflicts with an existing record.', previous: $previous);
     }
 
+    /**
+     * A foreign key of the database was violated: a related record was deleted
+     * or started to be used by a concurrent request after the checks passed.
+     */
+    public static function concurrentChange(?Throwable $previous = null): self
+    {
+        return new self('A related record was changed by a concurrent request.', previous: $previous);
+    }
+
     public function status(): int
     {
         return Response::HTTP_CONFLICT;

@@ -7,6 +7,7 @@ namespace App\Http\Requests;
 use App\Enums\DeviceCategory;
 use App\Models\Device;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
@@ -34,15 +35,20 @@ class StoreDeviceRequest extends FormRequest
     /**
      * The manufacturer and model pair must be unique. The counterpart value falls
      * back to the stored device, so partial updates are checked as well.
+     *
+     * The value goes in through a query callback: a plain where() would be
+     * serialized into the rule string, where a quote and a backslash in the
+     * input could add parameters to the rule (and end in a 500).
      */
     protected function uniqueDeviceType(string $attribute): Unique
     {
         $device = $this->route('device');
         $device = $device instanceof Device ? $device : null;
         $counterpart = $attribute === 'model' ? 'manufacturer' : 'model';
+        $counterpartValue = $this->input($counterpart, $device?->getAttribute($counterpart));
 
         return Rule::unique('devices', $attribute)
-            ->where($counterpart, $this->input($counterpart, $device?->getAttribute($counterpart)))
+            ->where(fn (Builder $query): Builder => $query->where($counterpart, $counterpartValue))
             ->ignore($device);
     }
 }

@@ -13,7 +13,7 @@ interface DeviceServiceInterface
     /**
      * @return LengthAwarePaginator<int, Device>
      */
-    public function list(int $perPage): LengthAwarePaginator;
+    public function list(int $perPage, int $page): LengthAwarePaginator;
 
     /**
      * @param array{manufacturer: string, model: string, category: string, description?: string|null} $data

@@ -56,18 +56,74 @@ it('masks sensitive headers', function (string $header): void {
 
     expect($log->request_headers)->toHaveKey(strtolower($header), '***')
         ->and(DB::table('api_logs')->value('request_headers'))->not->toContain('top-secret-value');
-})->with(['Authorization', 'Cookie']);
+})->with(['Authorization', 'Proxy-Authorization', 'Cookie', 'X-Api-Key', 'X-CSRF-Token', 'X-XSRF-Token']);
 
-it('truncates long bodies', function (): void {
-    config(['api_logging.max_body_length' => 20]);
+it('does not store the credentials PHP derives from an Authorization header', function (string $scheme): void {
+    $scheme === 'basic'
+        ? $this->withBasicAuth('api-user', 'basic-secret')
+        : $this->withHeader('Authorization', 'Digest username="api-user", response="digest-secret"');
 
-    $this->postJson('/api/v1/devices', ['description' => str_repeat('é', 100)])->assertUnprocessable();
+    $this->getJson('/api/v1/devices')->assertOk();
+
+    expect((string) DB::table('api_logs')->value('request_headers'))
+        ->not->toContain('secret')
+        ->not->toContain('api-user')
+        ->not->toContain(base64_encode('api-user:basic-secret'));
+})->with(['basic', 'digest']);
+
+it('logs a request with invalid UTF-8 instead of losing it', function (): void {
+    $device = Device::factory()->create();
+
+    // A single invalid byte used to make the insert fail, so the deletion left no trace.
+    $this->withHeader('X-Note', "caf\xE9")->deleteJson("/api/v1/devices/{$device->id}")->assertNoContent();
+
+    expect(ApiLog::query()->sole())
+        ->method->toBe('DELETE')
+        ->status_code->toBe(204)
+        ->request_headers->toHaveKey('x-note', 'caf?');
+});
+
+it('logs a body with invalid UTF-8 instead of losing it', function (): void {
+    $this->call('POST', '/api/v1/devices', [], [], [], [
+        'CONTENT_TYPE' => 'application/json',
+        'HTTP_ACCEPT' => 'application/json',
+    ], "{\"manufacturer\": \"\xFF\"}")->assertUnprocessable();
+
+    expect(ApiLog::query()->sole()->request_body)->toBe('{"manufacturer": "?"}');
+});
+
+it('deletes log rows older than the retention period', function (): void {
+    config(['api_logging.retention_days' => 30]);
+
+    $this->travel(-31)->days();
+    $this->getJson('/api/v1/devices')->assertOk();
+    $this->travelBack();
+    $this->getJson('/api/v1/contracts')->assertOk();
+
+    $this->artisan('model:prune', ['--model' => [ApiLog::class]])->assertSuccessful();
+
+    expect(ApiLog::query()->pluck('url')->all())->toBe([url('/api/v1/contracts')]);
+});
+
+it('prunes the log every day', function (): void {
+    $this->artisan('schedule:list')
+        ->expectsOutputToContain('0 0 * * *  php artisan model:prune --model=\'App\Models\ApiLog\'')
+        ->assertSuccessful();
+});
+
+it('truncates long bodies by bytes without splitting a character', function (): void {
+    config(['api_logging.max_body_bytes' => 21]);
+
+    // {"description":" is 16 bytes, then 2 bytes per "é": 21 bytes would end inside the third one.
+    $response = $this->call('POST', '/api/v1/devices', [], [], [], [
+        'CONTENT_TYPE' => 'application/json',
+        'HTTP_ACCEPT' => 'application/json',
+    ], json_encode(['description' => str_repeat('é', 100)], JSON_UNESCAPED_UNICODE))->assertUnprocessable();
 
     $log = ApiLog::query()->sole();
 
-    expect($log->request_body)->toEndWith('... [truncated]')
-        ->and(mb_strlen((string) $log->request_body))->toBe(20 + mb_strlen('... [truncated]'))
-        ->and($log->response_body)->toEndWith('... [truncated]');
+    expect($log->request_body)->toBe('{"description":"éé... [truncated]')
+        ->and($log->response_body)->toBe(substr((string) $response->getContent(), 0, 21) . '... [truncated]');
 });
 
 it('does not log when disabled', function (): void {

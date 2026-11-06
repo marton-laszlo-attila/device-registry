@@ -16,6 +16,9 @@ use Throwable;
  * Registered as global middleware, so requests that match no route
  * (404, 405) are logged as well. The row is written in terminate(),
  * after the response has been sent to the client.
+ *
+ * Every stored string is made valid UTF-8 first: a single invalid byte
+ * would otherwise make the insert fail, and the request would leave no trace.
  */
 final class LogApiTraffic
 {
@@ -40,7 +43,7 @@ final class LogApiTraffic
         try {
             ApiLog::query()->create([
                 'method' => $request->method(),
-                'url' => $request->fullUrl(),
+                'url' => $this->utf8($request->fullUrl()),
                 'status_code' => $response->getStatusCode(),
                 'request_headers' => $this->headers($request),
                 'request_body' => $this->body($request->getContent()),
@@ -64,7 +67,7 @@ final class LogApiTraffic
         $headers = [];
 
         foreach ($request->headers->all() as $name => $values) {
-            $headers[$name] = in_array($name, $masked, true) ? self::MASK : implode(', ', $values);
+            $headers[$name] = in_array($name, $masked, true) ? self::MASK : $this->utf8(implode(', ', $values));
         }
 
         return $headers;
@@ -76,11 +79,21 @@ final class LogApiTraffic
             return null;
         }
 
-        $maxLength = (int) config('api_logging.max_body_length');
+        $content = $this->utf8($content);
+        $maxBytes = (int) config('api_logging.max_body_bytes');
 
-        return mb_strlen($content) > $maxLength
-            ? mb_substr($content, 0, $maxLength) . self::TRUNCATION_MARKER
+        // mb_strcut() counts bytes, as the storage does, but never splits a character.
+        return strlen($content) > $maxBytes
+            ? mb_strcut($content, 0, $maxBytes) . self::TRUNCATION_MARKER
             : $content;
+    }
+
+    /**
+     * Replaces invalid UTF-8 byte sequences with "?".
+     */
+    private function utf8(string $value): string
+    {
+        return mb_scrub($value, 'UTF-8');
     }
 
     private function durationMs(Request $request): int

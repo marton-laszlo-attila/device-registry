@@ -12,6 +12,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Symfony\Component\HttpFoundation\Response;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,7 +28,16 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // The API has no authentication, so requests are limited per client IP.
-        RateLimiter::for('api', fn (Request $request) => Limit::perMinute(60)->by($request->ip()));
+        // The API has no authentication, so requests are limited per client IP. The limiter runs as
+        // global middleware, so it sees every request and lets everything outside /api through.
+        RateLimiter::for('api', fn (Request $request): Limit => $request->is('api/*')
+            ? Limit::perMinute(60)->by((string) $request->ip())
+            : Limit::none());
+
+        // Only failed logins count, so reading the documentation is never limited,
+        // but guessing its password is.
+        RateLimiter::for('docs', fn (Request $request): Limit => Limit::perMinute(10)
+            ->by((string) $request->ip())
+            ->after(fn (Response $response): bool => $response->getStatusCode() === Response::HTTP_UNAUTHORIZED));
     }
 }

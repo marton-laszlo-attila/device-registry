@@ -27,6 +27,40 @@ it('serves the documentation with valid credentials', function (string $uri): vo
     $this->withBasicAuth('docs-user', 'docs-secret')->get($uri)->assertOk();
 })->with('docs urls');
 
+it('locks a client out for a minute after 10 failed logins', function (): void {
+    foreach (range(1, 10) as $attempt) {
+        $this->withBasicAuth('docs-user', 'guess-' . $attempt)->get('/docs/api.json')->assertUnauthorized();
+    }
+
+    $this->withBasicAuth('docs-user', 'guess-11')->get('/docs/api.json')
+        ->assertTooManyRequests()
+        ->assertHeader('Retry-After');
+
+    // Even the right password waits, otherwise the lockout would confirm a correct guess.
+    $this->withBasicAuth('docs-user', 'docs-secret')->get('/docs/api')->assertTooManyRequests();
+
+    $this->travel(61)->seconds();
+
+    $this->withBasicAuth('docs-user', 'docs-secret')->get('/docs/api')->assertOk();
+});
+
+it('does not count successful logins against the limit', function (): void {
+    foreach (range(1, 15) as $attempt) {
+        $this->withBasicAuth('docs-user', 'docs-secret')->get('/docs/api.json')->assertOk();
+    }
+});
+
+it('counts failed logins per client IP', function (): void {
+    foreach (range(1, 10) as $attempt) {
+        $this->withBasicAuth('docs-user', 'wrong')->get('/docs/api.json')->assertUnauthorized();
+    }
+
+    $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.10'])
+        ->withBasicAuth('docs-user', 'docs-secret')
+        ->get('/docs/api.json')
+        ->assertOk();
+});
+
 it('denies access when no credentials are configured', function (?string $configured): void {
     config(['docs.username' => $configured, 'docs.password' => $configured]);
 

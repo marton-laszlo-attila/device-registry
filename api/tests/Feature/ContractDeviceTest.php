@@ -154,7 +154,7 @@ describe('store', function (): void {
 
         $this->postJson("/api/v1/contracts/{$contract->id}/devices", [
             'device_id' => Device::factory()->create()->id,
-            'serial_number' => str_repeat('é', 100),
+            'serial_number' => str_repeat('A', 100),
         ])->assertCreated();
     });
 
@@ -167,6 +167,53 @@ describe('store', function (): void {
         ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['serial_number']);
+    });
+
+    it('accepts common serial number formats', function (string $serialNumber): void {
+        $contract = Contract::factory()->create();
+
+        $this->postJson("/api/v1/contracts/{$contract->id}/devices", [
+            'device_id' => Device::factory()->create()->id,
+            'serial_number' => $serialNumber,
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.serial_number', $serialNumber);
+    })->with(['5CD1234XYZ', 'SN-2026/001', 'ab.cd_ef-12', '7']);
+
+    it('rejects a serial number outside the allowed characters', function (string $serialNumber): void {
+        $contract = Contract::factory()->create();
+
+        $this->postJson("/api/v1/contracts/{$contract->id}/devices", [
+            'device_id' => Device::factory()->create()->id,
+            'serial_number' => $serialNumber,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['serial_number' => 'may only contain letters, digits']);
+    })->with([
+        'inner space' => ['SN 0001'],
+        'starts with a hyphen' => ['-SN-0001'],
+        'line break' => ["SN-0001\nSN-0002"],
+        'zero width space inside' => ["SN-\u{200B}0001"],
+        'accented letter' => ['SN-É001'],
+        'SQL' => ["SN-1' OR '1'='1"],
+        'markup' => ['<script>alert(1)</script>'],
+    ]);
+
+    it('does not take a look-alike of an existing serial number', function (): void {
+        $contract = Contract::factory()->create();
+        $deviceId = Device::factory()->create()->id;
+
+        $this->assignDeviceViaApi($contract->id, $deviceId, 'SN-ABC-1');
+
+        // "АВС" in Cyrillic looks the same, but MySQL compares it as different text.
+        $this->postJson("/api/v1/contracts/{$contract->id}/devices", [
+            'device_id' => $deviceId,
+            'serial_number' => 'SN-АВС-1',
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['serial_number']);
+
+        expect($contract->assignments()->count())->toBe(1);
     });
 
     it('returns 404 for a missing contract', function (): void {

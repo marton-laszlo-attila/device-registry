@@ -11,9 +11,9 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 final class DeviceService implements DeviceServiceInterface
 {
-    public function list(int $perPage): LengthAwarePaginator
+    public function list(int $perPage, int $page): LengthAwarePaginator
     {
-        return Device::query()->orderBy('id')->paginate($perPage);
+        return Device::query()->orderBy('id')->paginate($perPage, page: $page);
     }
 
     public function create(array $data): Device

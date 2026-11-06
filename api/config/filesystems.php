@@ -35,7 +35,8 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // The API stores no files: no storage/{path} download and upload routes.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],
