@@ -1,0 +1,39 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services;
+
+use App\Exceptions\ConflictException;
+use App\Models\Device;
+use App\Services\Interfaces\DeviceServiceInterface;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+
+final class DeviceService implements DeviceServiceInterface
+{
+    public function list(int $perPage): LengthAwarePaginator
+    {
+        return Device::query()->orderBy('id')->paginate($perPage);
+    }
+
+    public function create(array $data): Device
+    {
+        return Device::query()->create($data);
+    }
+
+    public function update(Device $device, array $data): Device
+    {
+        $device->update($data);
+
+        return $device;
+    }
+
+    public function delete(Device $device): void
+    {
+        if ($device->assignments()->exists()) {
+            throw ConflictException::deviceInUse();
+        }
+
+        $device->delete();
+    }
+}

@@ -4,23 +4,21 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Services\ContractService;
+use App\Services\DeviceService;
+use App\Services\Interfaces\ContractServiceInterface;
+use App\Services\Interfaces\DeviceServiceInterface;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
     /**
-     * Register any application services.
+     * Service interface to implementation bindings.
+     *
+     * @var array<class-string, class-string>
      */
-    public function register(): void
-    {
-        //
-    }
-
-    /**
-     * Bootstrap any application services.
-     */
-    public function boot(): void
-    {
-        //
-    }
+    public array $bindings = [
+        DeviceServiceInterface::class => DeviceService::class,
+        ContractServiceInterface::class => ContractService::class,
+    ];
 }

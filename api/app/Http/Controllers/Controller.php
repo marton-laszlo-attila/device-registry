@@ -4,7 +4,20 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
+use Illuminate\Support\Number;
+
 abstract class Controller
 {
-    //
+    private const int DEFAULT_PER_PAGE = 15;
+
+    private const int MAX_PER_PAGE = 100;
+
+    /**
+     * The requested page size, clamped to 1..100.
+     */
+    protected function perPage(Request $request): int
+    {
+        return (int) Number::clamp($request->integer('per_page', self::DEFAULT_PER_PAGE), 1, self::MAX_PER_PAGE);
+    }
 }
