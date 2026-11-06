@@ -71,6 +71,63 @@ describe('store', function (): void {
         'on another contract' => [false],
     ]);
 
+    it('treats serial numbers case-insensitively', function (): void {
+        $existing = ContractDevice::factory()->create(['serial_number' => 'SN-ABC-1']);
+
+        $this->postJson("/api/v1/contracts/{$existing->contract_id}/devices", [
+            'device_id' => $existing->device_id,
+            'serial_number' => 'sn-abc-1',
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['serial_number']);
+    });
+
+    it('allows a serial number again once the unit was removed', function (): void {
+        $assignment = ContractDevice::factory()->create(['serial_number' => 'SN-MOVE']);
+        $target = Contract::factory()->create();
+
+        $this->deleteJson("/api/v1/contracts/{$assignment->contract_id}/devices/{$assignment->id}")->assertNoContent();
+
+        $this->postJson("/api/v1/contracts/{$target->id}/devices", [
+            'device_id' => $assignment->device_id,
+            'serial_number' => 'SN-MOVE',
+        ])->assertCreated();
+
+        $this->getJson("/api/v1/contracts/{$target->id}")->assertJsonPath('data.devices.0.serial_number', 'SN-MOVE');
+        $this->getJson("/api/v1/contracts/{$assignment->contract_id}")->assertJsonCount(0, 'data.devices');
+    });
+
+    it('takes the contract from the URL, not from the body', function (): void {
+        $contract = Contract::factory()->create();
+        $other = Contract::factory()->create();
+
+        $this->postJson("/api/v1/contracts/{$contract->id}/devices", [
+            'device_id' => Device::factory()->create()->id,
+            'serial_number' => 'SN-0001',
+            'contract_id' => $other->id,
+            'id' => 4242,
+        ])->assertCreated();
+
+        expect($contract->assignments()->count())->toBe(1)
+            ->and($other->assignments()->count())->toBe(0)
+            ->and($contract->assignments()->value('id'))->not->toBe(4242);
+    });
+
+    it('rejects a device id that is not an integer', function (mixed $deviceId): void {
+        $contract = Contract::factory()->create();
+
+        $this->postJson("/api/v1/contracts/{$contract->id}/devices", [
+            'device_id' => $deviceId,
+            'serial_number' => 'SN-0001',
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['device_id']);
+    })->with([
+        'text' => ['abc'],
+        'decimal' => [1.5],
+        'array' => [[1]],
+    ]);
+
     it('rejects a device that does not exist', function (): void {
         $contract = Contract::factory()->create();
 
@@ -91,6 +148,15 @@ describe('store', function (): void {
             ->assertUnprocessable()
             ->assertJsonValidationErrors([$field]);
     })->with(['device_id', 'serial_number']);
+
+    it('accepts a serial number of exactly 100 characters', function (): void {
+        $contract = Contract::factory()->create();
+
+        $this->postJson("/api/v1/contracts/{$contract->id}/devices", [
+            'device_id' => Device::factory()->create()->id,
+            'serial_number' => str_repeat('é', 100),
+        ])->assertCreated();
+    });
 
     it('rejects a too long serial number', function (): void {
         $contract = Contract::factory()->create();

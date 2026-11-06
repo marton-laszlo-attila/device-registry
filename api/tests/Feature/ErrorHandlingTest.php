@@ -129,3 +129,18 @@ it('keeps the HTML error page outside the API', function (): void {
 
     expect($response->headers->get('Content-Type'))->toStartWith('text/html');
 });
+
+it('answers a malformed JSON body with the consistent validation error, not a 500', function (string $body): void {
+    $this->call('POST', '/api/v1/devices', [], [], [], [
+        'CONTENT_TYPE' => 'application/json',
+        'HTTP_ACCEPT' => 'application/json',
+    ], $body)
+        ->assertUnprocessable()
+        ->assertJsonStructure(['message', 'errors' => ['manufacturer', 'model', 'category']]);
+
+    expect(Device::query()->count())->toBe(0);
+})->with([
+    'broken syntax' => ['{"manufacturer": '],
+    'a list instead of an object' => ['[1, 2]'],
+    'a bare string' => ['"text"'],
+]);

@@ -51,6 +51,15 @@ describe('index', function (): void {
             ->assertOk()
             ->assertJsonPath('meta.per_page', 100);
     });
+
+    it('clamps per_page to 1 when it is zero', function (): void {
+        Contract::factory()->count(2)->create();
+
+        $this->getJson('/api/v1/contracts?per_page=0')
+            ->assertOk()
+            ->assertJsonPath('meta.per_page', 1)
+            ->assertJsonCount(1, 'data');
+    });
 });
 
 describe('store', function (): void {
@@ -86,7 +95,47 @@ describe('store', function (): void {
         'invalid start date' => ['start_date', 'not-a-date'],
         'too long contract number' => ['contract_number', str_repeat('a', 51)],
         'too long partner name' => ['partner_name', str_repeat('a', 256)],
+        'too long notes' => ['notes', str_repeat('a', 5001)],
+        'non-string notes' => ['notes', ['array']],
     ]);
+
+    it('accepts values at the maximum length, counted in characters not bytes', function (): void {
+        $this->postJson('/api/v1/contracts', [
+            ...$this->payload,
+            'contract_number' => str_repeat('é', 50),
+            'partner_name' => str_repeat('ő', 255),
+            'notes' => str_repeat('ű', 5000),
+        ])->assertCreated();
+    });
+
+    it('returns accented and emoji text unchanged', function (): void {
+        $payload = [
+            ...$this->payload,
+            'partner_name' => 'Árvíztűrő Kft.',
+            'notes' => 'Tükörfúrógép – határidő: június 30. 😀',
+        ];
+
+        $id = $this->postJson('/api/v1/contracts', $payload)->assertCreated()->json('data.id');
+
+        $this->getJson("/api/v1/contracts/{$id}")
+            ->assertOk()
+            ->assertJsonPath('data.partner_name', 'Árvíztűrő Kft.')
+            ->assertJsonPath('data.notes', $payload['notes']);
+    });
+
+    it('accepts a contract that starts and ends on the same day', function (): void {
+        $sameDay = ['start_date' => '2026-05-01', 'end_date' => '2026-05-01'];
+
+        $this->postJson('/api/v1/contracts', [...$this->payload, ...$sameDay])->assertCreated();
+    });
+
+    it('ignores fields that are not part of the contract', function (): void {
+        $id = $this->postJson('/api/v1/contracts', [...$this->payload, 'id' => 4242])
+            ->assertCreated()
+            ->json('data.id');
+
+        expect($id)->not->toBe(4242);
+    });
 
     it('rejects an end date before the start date', function (): void {
         $this->postJson('/api/v1/contracts', [...$this->payload, 'end_date' => '2025-12-31'])
@@ -126,6 +175,16 @@ describe('show', function (): void {
             ]);
     });
 
+    it('shows only the devices of the requested contract', function (): void {
+        $mine = ContractDevice::factory()->create(['serial_number' => 'SN-MINE']);
+        ContractDevice::factory()->create(['serial_number' => 'SN-OTHER']);
+
+        $this->getJson("/api/v1/contracts/{$mine->contract_id}")
+            ->assertOk()
+            ->assertJsonCount(1, 'data.devices')
+            ->assertJsonPath('data.devices.0.serial_number', 'SN-MINE');
+    });
+
     it('returns an empty device list for a contract without devices', function (): void {
         $contract = Contract::factory()->create();
 
@@ -157,6 +216,20 @@ describe('update', function (): void {
         $this->putJson("/api/v1/contracts/{$contract->id}", ['partner_name' => 'Globex Zrt.'])
             ->assertOk()
             ->assertJsonPath('data.partner_name', 'Globex Zrt.');
+    });
+
+    it('clears the end date and notes with an explicit null but keeps them when omitted', function (): void {
+        $contract = Contract::factory()->create(['end_date' => '2030-01-01', 'notes' => 'Keep me']);
+
+        $this->patchJson("/api/v1/contracts/{$contract->id}", ['status' => 'terminated'])
+            ->assertOk()
+            ->assertJsonPath('data.end_date', '2030-01-01')
+            ->assertJsonPath('data.notes', 'Keep me');
+
+        $this->patchJson("/api/v1/contracts/{$contract->id}", ['end_date' => null, 'notes' => null])
+            ->assertOk()
+            ->assertJsonPath('data.end_date', null)
+            ->assertJsonPath('data.notes', null);
     });
 
     it('keeps its own contract number', function (): void {
