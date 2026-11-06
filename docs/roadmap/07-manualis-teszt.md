@@ -114,8 +114,9 @@ apij() { curl -s -H "Accept: application/json" -H "Content-Type: application/jso
 
 - [ ] Lekérdezés:
   ```bash
+  # a root jelszó a gyökér .env MYSQL_ROOT_PASSWORD sorában van
   docker compose exec mysql mysql -u root -p device_registry \
-    -e "SELECT id, method, path, status_code, duration_ms, created_at FROM api_logs ORDER BY id DESC LIMIT 20"
+    -e "SELECT id, method, url, status_code, duration_ms, created_at FROM api_logs ORDER BY id DESC LIMIT 20"
   ```
 - [ ] A fenti tesztlépések mind látszanak (2xx, 404, 409, 422, 405 is)
 - [ ] Egy POST sorban a `request_body` tartalmazza a küldött JSON-t, a `response_body` a választ

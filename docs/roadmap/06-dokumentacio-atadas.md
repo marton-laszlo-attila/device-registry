@@ -45,13 +45,12 @@ A "Végső review" szakasz már kész (előző munkamenet), azt hagyd ki.'
 - [ ] **Quick start** (tiszta klónból, lépésről lépésre):
   ```
   git clone … && cd device-registry
-  cp .env.example .env            # set DOCS_USERNAME / DOCS_PASSWORD
-  docker compose up -d --build
-  docker compose exec app composer install
-  docker compose exec app php artisan key:generate
-  docker compose exec app php artisan migrate --seed
+  make up                         # creates .env (random MySQL passwords), builds and starts the stack
+  make install                    # composer install, api/.env from api/.env.example, app key
+  # set DOCS_USERNAME / DOCS_PASSWORD in api/.env
+  make fresh                      # migrate:fresh --seed
   ```
-  plusz a `make` rövidítések
+  plusz make nélkül: a gyökérben `cp .env.example .env` és a két MySQL jelszó kitöltése, utána `docker compose up -d --build` és a `docker compose exec app …` parancsok (F5 óta a compose jelszó nélkül nem indul, lásd `docs/SECURITY_REVIEW.md` F-13)
 - [ ] **API documentation**: URL (`http://localhost:8080/docs/api`), Basic Auth adatok az `.env`-ből, `docs/openapi.json`
 - [ ] **Endpoints**: rövid táblázat + 2–3 curl példa (létrehozás, hozzárendelés, szerződés lekérdezése eszközökkel)
 - [ ] **Data model**: diagram (Mermaid `erDiagram`) + az eszköztípus és a gyári szám magyarázata

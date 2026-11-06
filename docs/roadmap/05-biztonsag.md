@@ -22,10 +22,10 @@ indoklással írd bele a jelentésbe. A végén a "Kézi biztonsági ellenőrzé
 
 ## Automatikus ellenőrzések (Claude)
 
-- [ ] `/security-review` skill
-- [ ] `composer audit`: nincs ismert sérülékeny függőség
-- [ ] PHPStan + Pest `arch()->preset()->security()` zöld (nincs `eval`, `exec`, `shell_exec`, `md5` jelszóra, `unserialize` stb.)
-- [ ] Titkok: `git log -p | grep -iE "password|secret|key="`: nincs commitolt titok; a `.env` a `.gitignore`-ban; az `.env.example`-ben nincs valós érték; az `APP_KEY` nincs commitolva
+- [x] `/security-review` skill (2026-11-06): a skill csak az `origin/HEAD`-hez képesti diffet nézi, ami tiszta `main`-en üres, ezért a teljes kódbázist a skill módszerével kézzel néztem át, plusz egy független reviewer agenttel. Eredmény: [docs/SECURITY_REVIEW.md](../SECURITY_REVIEW.md), 18 találat, mind javítva.
+- [x] `composer audit`: nincs ismert sérülékeny függőség
+- [x] PHPStan + Pest `arch()->preset()->security()` zöld (nincs `eval`, `exec`, `shell_exec`, `md5` jelszóra, `unserialize` stb.)
+- [x] Titkok: `git log -p | grep -iE "password|secret|key="`: nincs commitolt titok; a `.env` a `.gitignore`-ban; az `.env.example`-ben nincs valós érték; az `APP_KEY` nincs commitolva. A compose-ban volt `root`/`secret` helyi jelszó (F-13), ez most a gyökér `.env`-ből jön (véletlen érték, `make up` hozza létre).
 
 ## Ellenőrzőlista (OWASP API Top 10 alapján)
 
@@ -61,15 +61,15 @@ Futtasd, és pipáld ki. Ahol eltérés van, jelezd Claude-nak.
 - [ ] Nagy body (2 MB): `head -c 2000000 /dev/zero | tr '\0' 'a' | curl -i -X POST -H "Content-Type: application/json" --data-binary @- http://localhost:8080/api/v1/devices` → 413, nem 500
 - [ ] Rate limit: 61 kérés egy percen belül → az utolsó `429` + `Retry-After`
 - [ ] `curl -I http://localhost:8080/api/v1/devices` fejlécei: nincs `X-Powered-By`, nincs nginx verzió, van `X-Content-Type-Options: nosniff`
-- [ ] `docker compose exec mysql mysql -u root -p -e "SELECT request_headers, request_body FROM device_registry.api_logs ORDER BY id DESC LIMIT 5"` → nincs olvasható jelszó vagy Authorization
+- [ ] `docker compose exec mysql mysql -u root -p -e "SELECT request_headers, request_body FROM device_registry.api_logs ORDER BY id DESC LIMIT 5"` → nincs olvasható jelszó vagy Authorization (a root jelszó a gyökér `.env` `MYSQL_ROOT_PASSWORD` sorában van)
 - [ ] `docker compose exec app id` → nem `uid=0`
 - [ ] `git status --ignored` → a `.env` ignorálva, nincs commitolva
 
 ## Kimenet
 
-- [ ] `docs/SECURITY_REVIEW.md`: dátum, hatókör, módszer, találatok táblázata (súlyosság, státusz), szándékos döntések indoklással, javaslatok éles használathoz (API auth, HTTPS, log anonimizálás, WAF)
-- [ ] Minden javított találathoz regressziós teszt
-- [ ] `make qa` zöld
+- [x] `docs/SECURITY_REVIEW.md`: dátum, hatókör, módszer, találatok táblázata (súlyosság, státusz), szándékos döntések indoklással, javaslatok éles használathoz (API auth, HTTPS, log anonimizálás, WAF)
+- [x] Minden javított találathoz regressziós teszt (az alkalmazásszintűeknél Pest, és mindegyik elbukik a javítás nélkül, 13/13; a nginx/Docker javításoknál curl és `docker compose` ellenőrzés, ezek a kézi listában is szerepelnek)
+- [x] `make qa` zöld
 
 ## Commit(ok)
 
