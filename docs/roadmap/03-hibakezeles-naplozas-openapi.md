@@ -95,3 +95,8 @@ Minden a `bootstrap/app.php` → `withExceptions()` részben, egy helyen:
 - A 429-es válasz nincs a specben (globális viselkedés, a leírás említi).
 - Az `api_logs` tábla nem törlődik automatikusan (`MassPrunable`, README 6. pont), és a request body-ban nincs mezőszintű maszkolás (jelenleg nincs érzékeny mező).
 
+### Commitok
+
+- `24f1b17 feat: render all API errors as consistent JSON`
+- `214af21 feat: log API requests and responses to the database`
+- `3f81bfd feat: publish OpenAPI documentation behind basic auth`
