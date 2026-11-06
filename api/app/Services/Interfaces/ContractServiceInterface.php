@@ -6,6 +6,7 @@ namespace App\Services\Interfaces;
 
 use App\Exceptions\ConflictException;
 use App\Models\Contract;
+use App\Models\ContractDevice;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 interface ContractServiceInterface
@@ -43,4 +44,13 @@ interface ContractServiceInterface
      * @throws ConflictException when the contract still has devices assigned
      */
     public function delete(Contract $contract): void;
+
+    /**
+     * Put one physical unit of a device type on the contract.
+     *
+     * @param array{device_id: int, serial_number: string} $data
+     */
+    public function assignDevice(Contract $contract, array $data): ContractDevice;
+
+    public function removeAssignment(ContractDevice $assignment): void;
 }

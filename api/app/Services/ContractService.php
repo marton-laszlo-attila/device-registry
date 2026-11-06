@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Exceptions\ConflictException;
 use App\Models\Contract;
+use App\Models\ContractDevice;
 use App\Services\Interfaces\ContractServiceInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -35,5 +36,15 @@ final class ContractService implements ContractServiceInterface
         }
 
         $contract->delete();
+    }
+
+    public function assignDevice(Contract $contract, array $data): ContractDevice
+    {
+        return $contract->assignments()->create($data)->load('device');
+    }
+
+    public function removeAssignment(ContractDevice $assignment): void
+    {
+        $assignment->delete();
     }
 }
