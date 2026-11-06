@@ -1,5 +1,7 @@
 # Device Registry
 
+[![CI](https://github.com/marton-laszlo-attila/device-registry/actions/workflows/ci.yml/badge.svg)](https://github.com/marton-laszlo-attila/device-registry/actions/workflows/ci.yml)
+
 REST API (Laravel 13, PHP 8.5, MySQL 8.4) for managing contracts and the devices on them.
 
 ```bash

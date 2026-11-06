@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-gates:
+    name: Quality gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: api
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: device_registry
+          MYSQL_USER: device_registry
+          MYSQL_PASSWORD: secret
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: pcov
+          tools: composer:v2
+
+      - name: Create the test database (same script as the Docker setup)
+        working-directory: .
+        run: mysql -h127.0.0.1 -uroot -proot < docker/mysql/init/01-test-database.sql
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Get the Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-${{ hashFiles('api/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Prepare the environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate --force
+
+      - name: PSR-4 autoloading
+        run: composer dump-autoload --strict-psr
+
+      - name: PSR-12 (Pint)
+        run: vendor/bin/pint --test
+
+      - name: PSR-12 (PHP_CodeSniffer)
+        run: vendor/bin/phpcs
+
+      - name: Static analysis (PHPStan)
+        run: vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+
+      - name: Build the schema from the migrations and seed it
+        run: php artisan migrate:fresh --seed --force
+
+      - name: Tests with 100% coverage
+        run: vendor/bin/pest --coverage --min=100
+
+      - name: Dependency audit
+        run: composer audit
