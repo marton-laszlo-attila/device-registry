@@ -28,8 +28,8 @@ class StoreContractRequest extends FormRequest
         return [
             'contract_number' => ['required', 'string', 'max:50', Rule::unique('contracts')->ignore($contract)],
             'partner_name' => ['required', 'string', 'max:255'],
-            'start_date' => ['required', 'date', ...$this->startDateLimit($contract)],
-            'end_date' => ['nullable', 'date', 'after_or_equal:' . $this->startDateReference($contract)],
+            'start_date' => ['required', 'date_format:Y-m-d', ...$this->startDateLimit($contract)],
+            'end_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:' . $this->startDateReference($contract)],
             'status' => ['required', Rule::enum(ContractStatus::class)],
             'notes' => ['nullable', 'string', 'max:5000'],
         ];

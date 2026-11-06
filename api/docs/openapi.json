@@ -1048,14 +1048,14 @@
                     },
                     "start_date": {
                         "type": "string",
-                        "format": "date-time"
+                        "format": "date"
                     },
                     "end_date": {
                         "type": [
                             "string",
                             "null"
                         ],
-                        "format": "date-time"
+                        "format": "date"
                     },
                     "status": {
                         "$ref": "#/components/schemas/ContractStatus"
@@ -1120,14 +1120,14 @@
                     },
                     "start_date": {
                         "type": "string",
-                        "format": "date-time"
+                        "format": "date"
                     },
                     "end_date": {
                         "type": [
                             "string",
                             "null"
                         ],
-                        "format": "date-time"
+                        "format": "date"
                     },
                     "status": {
                         "$ref": "#/components/schemas/ContractStatus"
