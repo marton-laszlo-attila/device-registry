@@ -56,7 +56,8 @@ Minden a `bootstrap/app.php` → `withExceptions()` részben, egy helyen:
 - [x] Tesztek: hitelesítés nélkül 401 + `WWW-Authenticate`; rossz jelszó 401; jó adatokkal 200; az `api.json` minden task-végpontot tartalmaz; üres env → 401 helyes adatokkal is
 
 ### Böngészős ellenőrzés (opcionális, MCP)
-- [ ] Claude in Chrome: `http://user:pass@localhost:8080/docs/api` megnyitása, és egy képernyőkép arról, hogy minden végpont látszik. (A böngésző natív Basic Auth ablaka blokkolhatja a bővítményt, ezért kell a felhasználónév és a jelszó az URL-ben.)
+- [x] Claude in Chrome: `http://user:pass@localhost:8080/docs/api` megnyitása, és egy képernyőkép arról, hogy minden végpont látszik. (A böngésző natív Basic Auth ablaka blokkolhatja a bővítményt, ezért kell a felhasználónév és a jelszó az URL-ben.)
+  - Kézzel ellenőrizve böngészőben (2026-11-06): a `/docs/api` beállított `DOCS_USERNAME`/`DOCS_PASSWORD` mellett megnyílik. Claude in Chrome felvétel és képernyőkép nem készült.
 
 ## Elfogadási feltételek
 
@@ -73,7 +74,7 @@ Minden a `bootstrap/app.php` → `withExceptions()` részben, egy helyen:
 
 ## Megvalósítás (2026-11-06)
 
-**Állapot:** kész. `make qa` zöld: 125 teszt, 100% lefedettség. A futó stacken (nginx + FPM) curl-lel is ellenőrizve: a hibák JSON-ok, a kérések naplózódnak maszkolt `Authorization` fejléccel, a `/docs/api` beállított jelszó nélkül 401.
+**Állapot:** kész. `make qa` zöld: 125 teszt, 100% lefedettség. A futó stacken (nginx + FPM) curl-lel is ellenőrizve: a hibák JSON-ok, a kérések naplózódnak maszkolt `Authorization` fejléccel, a `/docs/api` beállított jelszó nélkül 401, beállított adatokkal böngészőben is megnyílik (kézi ellenőrzés). A sikeres belépést curl-lel is ellenőriztem egy, a konténerben env változókkal indított `php -S` szerveren (UI és JSON: 200, rossz jelszó: 401).
 
 ### Eltérések a tervtől
 
@@ -91,7 +92,6 @@ Minden a `bootstrap/app.php` → `withExceptions()` részben, egy helyen:
 
 ### Az F4–F5-re maradt
 
-- A böngészős (Claude in Chrome) ellenőrzés nem készült el: a lokális `api/.env`-ben nincs `DOCS_USERNAME`/`DOCS_PASSWORD`. A sikeres belépést a konténerben, env változókkal indított `php -S` szerveren curl-lel ellenőriztem (UI és JSON: 200, rossz jelszó: 401).
 - A 429-es válasz nincs a specben (globális viselkedés, a leírás említi).
 - Az `api_logs` tábla nem törlődik automatikusan (`MassPrunable`, README 6. pont), és a request body-ban nincs mezőszintű maszkolás (jelenleg nincs érzékeny mező).
 
