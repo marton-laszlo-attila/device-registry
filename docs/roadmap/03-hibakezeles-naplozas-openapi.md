@@ -25,7 +25,8 @@ Commit előtt a `make qa` legyen zöld.'
 ### 1. Egységes hibakezelés
 Minden a `bootstrap/app.php` → `withExceptions()` részben, egy helyen:
 - [ ] `shouldRenderJsonWhen(fn ($request) => $request->is('api/*'))`, vagyis `Accept` fejléc nélkül is JSON a válasz
-- [ ] `ApiException` → `{"message": ...}` a saját `status()` kóddal (409)
+- [ ] `ApiException` → `{"message": ...}` a saját `status()` kóddal (409). Az F2-ben már van erre egy minimális `render()`, ezt kell beépíteni a teljes handlerbe.
+- [ ] `UniqueConstraintViolationException` → 409 `{"message": ...}`, nem 500 (F2-ből maradt). Egyidejű kérésnél ugyanaz a gyári szám két kérésben is átmehet a validáción, és ilyenkor a második az adatbázis unique megkötésén bukik el. Teszt: a validációt megkerülve, közvetlenül az adatbázisban létrehozott ütközés.
 - [ ] `NotFoundHttpException` (ide tartozik a `ModelNotFoundException` is) → 404 `{"message": "Resource not found."}`, modellnév és id nélkül
 - [ ] A többi esetet (422 validáció, 405, 429, 500) a Laravel már `{message[, errors]}` formában adja. Ezekhez **nem kell saját kód**, csak teszt, amely igazolja a formát.
 - [ ] Rate limit: `$middleware->throttleApi()` (alapból 60 kérés/perc)
