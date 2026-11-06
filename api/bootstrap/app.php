@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Exceptions\ApiException;
 use App\Exceptions\ConflictException;
+use App\Http\Middleware\LogApiTraffic;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -21,6 +22,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->throttleApi();
+
+        // Global rather than in the api group: unmatched routes (404, 405) never run group middleware.
+        $middleware->append(LogApiTraffic::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Every error of the API is JSON: { "message": ..., "errors": {...} } (errors only on 422).

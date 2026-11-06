@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\ApiLog;
 use App\Models\Contract;
 use App\Models\ContractDevice;
 use App\Models\Device;
@@ -119,6 +120,8 @@ it('limits API requests to 60 per minute', function (): void {
         ->assertTooManyRequests()
         ->assertHeader('Retry-After')
         ->assertExactJson(['message' => 'Too Many Attempts.']);
+
+    expect(ApiLog::query()->latest('id')->value('status_code'))->toBe(429);
 });
 
 it('keeps the HTML error page outside the API', function (): void {
