@@ -6,7 +6,7 @@ namespace App\Services\Interfaces;
 
 use App\Exceptions\ConflictException;
 use App\Models\Device;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 interface DeviceServiceInterface
 {

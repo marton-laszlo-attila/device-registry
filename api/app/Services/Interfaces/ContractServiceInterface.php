@@ -7,7 +7,7 @@ namespace App\Services\Interfaces;
 use App\Exceptions\ConflictException;
 use App\Models\Contract;
 use App\Models\ContractDevice;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 interface ContractServiceInterface
 {

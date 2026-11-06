@@ -8,7 +8,7 @@ use App\Exceptions\ConflictException;
 use App\Models\Contract;
 use App\Models\ContractDevice;
 use App\Services\Interfaces\ContractServiceInterface;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 final class ContractService implements ContractServiceInterface
 {
