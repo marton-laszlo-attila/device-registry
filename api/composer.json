@@ -79,7 +79,7 @@
             "composer dump-autoload --strict-psr",
             "@lint",
             "@stan",
-            "vendor/bin/pest --coverage --min=80",
+            "vendor/bin/pest --coverage --min=100",
             "composer audit"
         ]
     },

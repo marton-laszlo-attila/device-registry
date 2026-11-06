@@ -23,7 +23,7 @@ test:
 	$(APP) vendor/bin/pest
 
 coverage:
-	$(APP) vendor/bin/pest --coverage --min=80
+	$(APP) vendor/bin/pest --coverage --min=100
 
 lint:
 	$(APP) vendor/bin/pint --test

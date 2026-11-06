@@ -149,7 +149,7 @@ Minden fázis végén **mind zöld kell legyen** (a Makefile-ban `make qa`):
 | PSR-12 | `vendor/bin/pint --test` (preset: `psr12`) | formázás |
 | PSR-12 független ellenőrzés | `vendor/bin/phpcs --standard=PSR12 app database routes tests` | a Pint mellett egy második eszköz is igazolja |
 | Statikus analízis | `vendor/bin/phpstan analyse` (Larastan, level 6) | típusok, hibák |
-| Tesztek | `vendor/bin/pest --coverage --min=80` | funkció + lefedettség |
+| Tesztek | `vendor/bin/pest --coverage --min=100` | funkció + lefedettség |
 | Függőségek | `composer audit` | ismert sérülékenységek |
 | Migrációk | `php artisan migrate:fresh --seed` | tiszta adatbázisból felállítható |
 

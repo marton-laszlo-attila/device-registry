@@ -125,7 +125,7 @@ apij() { curl -s -H "Accept: application/json" -H "Content-Type: application/jso
 ## 8. Standardek és automata tesztek
 
 - [ ] `make qa` → minden zöld
-- [ ] `make coverage` → ≥ 80%
+- [ ] `make coverage` → 100%
 - [ ] `docker compose exec app composer dump-autoload --strict-psr` → nincs figyelmeztetés (PSR-4)
 - [ ] `docker compose exec app vendor/bin/phpcs` → 0 hiba (PSR-12)
 - [ ] A GitHubon a CI zöld a `main` branchen

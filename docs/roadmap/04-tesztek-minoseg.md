@@ -22,7 +22,7 @@ ezt külön `fix:` commitba tedd, és jelezd nekem.'
 ## Feladatok
 
 ### Lefedettség és hiányelemzés
-- [ ] `make coverage` (`--coverage --min=80`), a nem lefedett sorok átnézése: ahol valós viselkedés maradt teszteletlenül, ott pótolni kell
+- [ ] `make coverage` (`--coverage --min=100`), a nem lefedett sorok átnézése: ahol valós viselkedés maradt teszteletlenül, ott pótolni kell
 - [ ] Követelmény-mátrix teszt-szinten: a `docs/task.txt` minden pontjához legyen legalább egy teszt, a nevében hivatkozással (pl. `it('shows devices on contract detail but not in list')`)
 - [ ] Szélsőséges esetek, ha még hiányoznak:
   - `per_page=0` és `per_page=1000` (a felső korlát érvényesül)
@@ -40,13 +40,13 @@ ezt külön `fix:` commitba tedd, és jelezd nekem.'
 - [ ] Arch teszt: `expect('App\Services\Interfaces')->toBeInterfaces()`; `expect('App\Http\Controllers')->not->toUse([DeviceService::class, ContractService::class])`; `expect(DeviceService::class)->toImplement(DeviceServiceInterface::class)` (és ugyanígy a `ContractService`-re)
 
 ### CI
-- [ ] `.github/workflows/ci.yml`: `ubuntu-latest`, `mysql:8.4` service, `shivammathur/setup-php` (8.5, `pcov`), composer cache; lépések: validate → install → strict-psr → pint → phpcs → phpstan → pest --coverage --min=80 → composer audit
+- [ ] `.github/workflows/ci.yml`: `ubuntu-latest`, `mysql:8.4` service, `shivammathur/setup-php` (8.5, `pcov`), composer cache; lépések: validate → install → strict-psr → pint → phpcs → phpstan → pest --coverage --min=100 → composer audit
 - [ ] CI badge a README-be
 - [ ] Push után `gh run watch` → zöld
 
 ## Elfogadási feltételek
 
-- [ ] `make qa` zöld, lefedettség ≥ 80%
+- [ ] `make qa` zöld, lefedettség 100%
 - [ ] A CI a GitHubon zöld
 - [ ] Nincs kihagyott (`skip`) vagy `todo` teszt
 
