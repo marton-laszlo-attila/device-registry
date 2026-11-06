@@ -7,3 +7,5 @@ parameters:
         - app
         - database
     tmpDir: storage/framework/phpstan
+    # Read the cast types from the body of Model::casts(), not only its declared return type.
+    parseModelCastsMethod: true
