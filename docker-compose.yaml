@@ -1,22 +1,35 @@
+# Credentials come from the .env file next to this one (git-ignored, created by `make up`
+# with random passwords; see .env.example). Nothing secret is written in this file.
+x-php: &php
+  build:
+    context: ./docker/php
+    args:
+      UID: ${UID:-1000}
+      GID: ${GID:-1000}
+  image: device-registry-php
+  volumes:
+    - ./api:/var/www/html
+  environment:
+    DB_HOST: mysql
+    DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env (make up creates it)}
+  depends_on:
+    mysql:
+      condition: service_healthy
+
 services:
   app:
-    build:
-      context: ./docker/php
-      args:
-        UID: ${UID:-1000}
-        GID: ${GID:-1000}
-    volumes:
-      - ./api:/var/www/html
-    environment:
-      DB_HOST: mysql
-    depends_on:
-      mysql:
-        condition: service_healthy
+    <<: *php
+
+  # Runs the scheduled tasks (pruning of the API log).
+  scheduler:
+    <<: *php
+    command: ["php", "artisan", "schedule:work"]
 
   nginx:
-    image: nginx:stable-alpine
+    image: nginx:1.30-alpine
+    # The API has no authentication: reachable from this machine only.
     ports:
-      - "8080:80"
+      - "127.0.0.1:${APP_PORT:-8080}:80"
     volumes:
       - ./api:/var/www/html:ro
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
@@ -30,13 +43,14 @@ services:
     environment:
       MYSQL_DATABASE: device_registry
       MYSQL_USER: device_registry
-      MYSQL_PASSWORD: secret
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env (make up creates it)}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env (make up creates it)}
     volumes:
       - mysql-data:/var/lib/mysql
       - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      # mysqladmin ping exits 0 even on "access denied", so no password is needed here.
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
       interval: 5s
       timeout: 5s
       retries: 20

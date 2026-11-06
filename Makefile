@@ -2,8 +2,16 @@
 
 APP := docker compose exec -T app
 
-up:
+# 16 random bytes as 32 hex characters.
+RANDOM_SECRET = $$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')
+
+up: .env
 	docker compose up -d --build
+
+# Docker Compose variables; created once, with random MySQL passwords.
+.env:
+	@printf 'DB_PASSWORD=%s\nMYSQL_ROOT_PASSWORD=%s\n' "$(RANDOM_SECRET)" "$(RANDOM_SECRET)" > .env
+	@echo "Created .env with random MySQL passwords."
 
 down:
 	docker compose down

@@ -9,7 +9,9 @@ RUN apk add --no-cache icu-dev libzip-dev git unzip $PHPIZE_DEPS \
     && docker-php-ext-enable pcov \
     && apk del $PHPIZE_DEPS
 
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2.11 /usr/bin/composer /usr/bin/composer
+
+COPY conf.d/security.ini "$PHP_INI_DIR/conf.d/zz-security.ini"
 
 RUN addgroup -g ${GID} app && adduser -D -u ${UID} -G app app \
     && mkdir -p /var/www/html && chown app:app /var/www/html
