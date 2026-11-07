@@ -49,21 +49,21 @@ indoklással írd bele a jelentésbe. A végén a "Kézi biztonsági ellenőrzé
 
 Futtasd, és pipáld ki. Ahol eltérés van, jelezd Claude-nak.
 
-- [ ] `curl -i http://localhost:8080/docs/api` → `401` és `WWW-Authenticate: Basic`
-- [ ] `curl -i -u admin:rossz http://localhost:8080/docs/api.json` → `401`
-- [ ] 11 rossz próbálkozás egy percen belül → `429`
+- [x] `curl -i http://localhost:8080/docs/api` → `401` és `WWW-Authenticate: Basic`
+- [x] `curl -i -u admin:rossz http://localhost:8080/docs/api.json` → `401`
+- [x] 11 rossz próbálkozás egy percen belül → `429`
   ```bash
   for i in $(seq 1 11); do curl -s -o /dev/null -w "%{http_code}\n" -u x:y http://localhost:8080/docs/api.json; done
   ```
-- [ ] `curl -i http://localhost:8080/api/v1/devices/999999` → a válaszban nincs `App\Models`, `trace`, `file`
-- [ ] SQLi kísérlet: `curl -i "http://localhost:8080/api/v1/devices?per_page=1%20OR%201=1"` → 200 vagy 422, nem 500
-- [ ] Hibás JSON: `curl -i -X POST -H "Content-Type: application/json" -d '{"manufacturer":' http://localhost:8080/api/v1/devices` → 4xx JSON hibaüzenet, nem 500
-- [ ] Nagy body (2 MB): `head -c 2000000 /dev/zero | tr '\0' 'a' | curl -i -X POST -H "Content-Type: application/json" --data-binary @- http://localhost:8080/api/v1/devices` → 413, nem 500
-- [ ] Rate limit: 61 kérés egy percen belül → az utolsó `429` + `Retry-After`
-- [ ] `curl -I http://localhost:8080/api/v1/devices` fejlécei: nincs `X-Powered-By`, nincs nginx verzió, van `X-Content-Type-Options: nosniff`
-- [ ] `docker compose exec mysql mysql -u root -p -e "SELECT request_headers, request_body FROM device_registry.api_logs ORDER BY id DESC LIMIT 5"` → nincs olvasható jelszó vagy Authorization (a root jelszó a gyökér `.env` `MYSQL_ROOT_PASSWORD` sorában van)
-- [ ] `docker compose exec app id` → nem `uid=0`
-- [ ] `git status --ignored` → a `.env` ignorálva, nincs commitolva
+- [x] `curl -i http://localhost:8080/api/v1/devices/999999` → a válaszban nincs `App\Models`, `trace`, `file`
+- [x] SQLi kísérlet: `curl -i "http://localhost:8080/api/v1/devices?per_page=1%20OR%201=1"` → 200 vagy 422, nem 500
+- [x] Hibás JSON: `curl -i -X POST -H "Content-Type: application/json" -d '{"manufacturer":' http://localhost:8080/api/v1/devices` → 4xx JSON hibaüzenet, nem 500
+- [x] Nagy body (2 MB): `head -c 2000000 /dev/zero | tr '\0' 'a' | curl -i -X POST -H "Content-Type: application/json" --data-binary @- http://localhost:8080/api/v1/devices` → 413, nem 500
+- [x] Rate limit: 61 kérés egy percen belül → az utolsó `429` + `Retry-After`
+- [x] `curl -I http://localhost:8080/api/v1/devices` fejlécei: nincs `X-Powered-By`, nincs nginx verzió, van `X-Content-Type-Options: nosniff`
+- [x] `docker compose exec mysql mysql -u root -p -e "SELECT request_headers, request_body FROM device_registry.api_logs ORDER BY id DESC LIMIT 5"` → nincs olvasható jelszó vagy Authorization (a root jelszó a gyökér `.env` `MYSQL_ROOT_PASSWORD` sorában van)
+- [x] `docker compose exec app id` → nem `uid=0`
+- [x] `git status --ignored` → a `.env` ignorálva, nincs commitolva
 
 ## Kimenet
 

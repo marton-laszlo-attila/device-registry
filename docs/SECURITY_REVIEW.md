@@ -312,4 +312,22 @@ Found during the manual check, after the baseline commit.
 
 ## Manual verification
 
-The manual security checklist ("Kézi biztonsági ellenőrzés") is in [docs/roadmap/05-biztonsag.md](roadmap/05-biztonsag.md) and is carried out by the author; its results are not part of this report.
+The manual security checklist ("Kézi biztonsági ellenőrzés") is in [docs/roadmap/05-biztonsag.md](roadmap/05-biztonsag.md) and was carried out by the author on 2026-11-07 against the running Docker stack.
+
+**Result: all 12 checks passed.**
+
+| Check | Result |
+|---|---|
+| Documentation without credentials / with wrong credentials | `401` + `WWW-Authenticate: Basic` |
+| 11 failed documentation logins within a minute | `401` × 10, then `429` |
+| Unknown resource (`/api/v1/devices/999999`) | `404`, no model class, trace or file |
+| SQL injection in `per_page` (`1 OR 1=1`) | `200`, the value is read as the integer `1` (`LIMIT 1`) |
+| Malformed JSON body | `422` JSON, not `500` |
+| 2 MB body | `413` from nginx, not `500` |
+| 61 API requests within a minute | the last one `429` + `Retry-After` |
+| Response headers | no `X-Powered-By`, no nginx version, `X-Content-Type-Options: nosniff` |
+| Latest rows of `api_logs` | no readable password or `Authorization` value |
+| User of the app container | `uid=1000(app)`, not root |
+| `git status --ignored` | `.env` ignored, never committed |
+
+One deviation came up while checking the documentation's `401`: in debug mode its JSON body contained a stack trace. It was fixed during the check and is recorded as F-19.
