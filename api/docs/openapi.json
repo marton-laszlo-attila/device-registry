@@ -1079,7 +1079,7 @@
             },
             "StoreDeviceRequest": {
                 "type": "object",
-                "description": "The rules here are the single source for both create and update\n(UpdateDeviceRequest only makes every field optional).",
+                "description": "The rules here are the single source for both create and update\n(UpdateDeviceRequest makes every field optional, and checks the pair from the\nmanufacturer side when only the manufacturer is sent).",
                 "properties": {
                     "manufacturer": {
                         "type": "string",

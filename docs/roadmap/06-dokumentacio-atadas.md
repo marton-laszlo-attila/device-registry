@@ -34,10 +34,10 @@ A "Végső review" szakasz már kész (előző munkamenet), azt hagyd ki.'
 ## Feladatok
 
 ### Végső review
-- [ ] `/code-review high` (Opus 5.5) a teljes kódbázisra; a jogos találatok javítása külön commitban
-- [ ] `/simplify`: duplikáció, felesleges absztrakció (DRY)
-- [ ] TODO, FIXME, kikommentezett kód, `dd`/`dump` nincs a kódban
-- [ ] A Laravel vázból maradt, nem használt fájlok törlése (pl. a `User` modell és migráció, ha nem kell; `resources/js`, ha nincs frontend). **Előtte ellenőrizd, hogy semmi nem hivatkozik rájuk.**
+- [x] `/code-review high` (Opus 5.5) a teljes kódbázisra; a jogos találatok javítása külön commitban
+- [x] `/simplify`: duplikáció, felesleges absztrakció (DRY)
+- [x] TODO, FIXME, kikommentezett kód, `dd`/`dump` nincs a kódban
+- [x] A Laravel vázból maradt, nem használt fájlok törlése (pl. a `User` modell és migráció, ha nem kell; `resources/js`, ha nincs frontend). **Előtte ellenőrizd, hogy semmi nem hivatkozik rájuk.**
 
 ### README.md (angol)
 - [ ] Cím, egy mondatos leírás, CI badge

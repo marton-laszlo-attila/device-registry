@@ -33,12 +33,8 @@ describe('store', function (): void {
         $contract = Contract::factory()->create();
         $device = Device::factory()->create();
 
-        foreach (['SN-0001', 'SN-0002'] as $serialNumber) {
-            $this->postJson("/api/v1/contracts/{$contract->id}/devices", [
-                'device_id' => $device->id,
-                'serial_number' => $serialNumber,
-            ])->assertCreated();
-        }
+        $this->assignDeviceViaApi($contract->id, $device->id, 'SN-0001');
+        $this->assignDeviceViaApi($contract->id, $device->id, 'SN-0002');
 
         expect($contract->assignments()->count())->toBe(2);
     });
@@ -48,10 +44,7 @@ describe('store', function (): void {
         ContractDevice::factory()->for($device)->create();
         $contract = Contract::factory()->create();
 
-        $this->postJson("/api/v1/contracts/{$contract->id}/devices", [
-            'device_id' => $device->id,
-            'serial_number' => 'SN-OTHER',
-        ])->assertCreated();
+        $this->assignDeviceViaApi($contract->id, $device->id, 'SN-OTHER');
 
         expect($device->contracts()->count())->toBe(2);
     });
@@ -88,10 +81,7 @@ describe('store', function (): void {
 
         $this->deleteJson("/api/v1/contracts/{$assignment->contract_id}/devices/{$assignment->id}")->assertNoContent();
 
-        $this->postJson("/api/v1/contracts/{$target->id}/devices", [
-            'device_id' => $assignment->device_id,
-            'serial_number' => 'SN-MOVE',
-        ])->assertCreated();
+        $this->assignDeviceViaApi($target->id, $assignment->device_id, 'SN-MOVE');
 
         $this->getJson("/api/v1/contracts/{$target->id}")->assertJsonPath('data.devices.0.serial_number', 'SN-MOVE');
         $this->getJson("/api/v1/contracts/{$assignment->contract_id}")->assertJsonCount(0, 'data.devices');
@@ -154,10 +144,7 @@ describe('store', function (): void {
     it('accepts a serial number of exactly 100 characters', function (): void {
         $contract = Contract::factory()->create();
 
-        $this->postJson("/api/v1/contracts/{$contract->id}/devices", [
-            'device_id' => Device::factory()->create()->id,
-            'serial_number' => str_repeat('A', 100),
-        ])->assertCreated();
+        $this->assignDeviceViaApi($contract->id, Device::factory()->create()->id, str_repeat('A', 100));
     });
 
     it('rejects a too long serial number', function (): void {
@@ -233,8 +220,8 @@ describe('destroy', function (): void {
         $this->deleteJson("/api/v1/contracts/{$assignment->contract_id}/devices/{$assignment->id}")
             ->assertNoContent();
 
-        $this->assertDatabaseMissing('contract_device', ['id' => $assignment->id]);
-        $this->assertDatabaseHas('devices', ['id' => $assignment->device_id]);
+        $this->assertModelMissing($assignment);
+        $this->assertModelExists($assignment->device);
     });
 
     it('makes the contract deletable once its last device is removed', function (): void {
@@ -251,7 +238,7 @@ describe('destroy', function (): void {
         $this->deleteJson("/api/v1/contracts/{$otherContract->id}/devices/{$assignment->id}")
             ->assertNotFound();
 
-        $this->assertDatabaseHas('contract_device', ['id' => $assignment->id]);
+        $this->assertModelExists($assignment);
     });
 
     it('returns 404 for a missing assignment', function (): void {

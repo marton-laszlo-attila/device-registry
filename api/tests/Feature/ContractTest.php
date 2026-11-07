@@ -295,7 +295,7 @@ describe('destroy', function (): void {
             ->assertConflict()
             ->assertJsonStructure(['message']);
 
-        $this->assertDatabaseHas('contracts', ['id' => $assignment->contract_id]);
+        $this->assertModelExists($assignment->contract);
     });
 
     it('returns 404 for a missing contract', function (): void {

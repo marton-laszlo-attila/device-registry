@@ -256,7 +256,7 @@ describe('destroy', function (): void {
             ->assertConflict()
             ->assertJsonStructure(['message']);
 
-        $this->assertDatabaseHas('devices', ['id' => $assignment->device_id]);
+        $this->assertModelExists($assignment->device);
     });
 
     it('stays protected while another contract still has it', function (): void {

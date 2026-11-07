@@ -15,7 +15,8 @@ use Illuminate\Validation\Rules\Unique;
 
 /**
  * The rules here are the single source for both create and update
- * (UpdateDeviceRequest only makes every field optional).
+ * (UpdateDeviceRequest makes every field optional, and checks the pair from the
+ * manufacturer side when only the manufacturer is sent).
  */
 class StoreDeviceRequest extends FormRequest
 {
