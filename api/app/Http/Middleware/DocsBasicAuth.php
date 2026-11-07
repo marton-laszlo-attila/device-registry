@@ -7,12 +7,13 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
 /**
  * Protects the API documentation with HTTP Basic Auth.
  *
- * Fails closed: without configured credentials nobody gets in.
+ * Fails closed: without configured credentials nobody gets in. A failed login is answered
+ * with a short plain text 401 instead of an exception, so neither the HTML error page nor,
+ * in debug mode, a stack trace reaches an unauthenticated client.
  */
 final class DocsBasicAuth
 {
@@ -22,7 +23,10 @@ final class DocsBasicAuth
     public function handle(Request $request, Closure $next): Response
     {
         if (! $this->hasValidCredentials($request)) {
-            throw new UnauthorizedHttpException('Basic realm="API Docs"', 'Invalid credentials.');
+            return response('Unauthorized.', Response::HTTP_UNAUTHORIZED, [
+                'Content-Type' => 'text/plain; charset=UTF-8',
+                'WWW-Authenticate' => 'Basic realm="API Docs"',
+            ]);
         }
 
         return $next($request);

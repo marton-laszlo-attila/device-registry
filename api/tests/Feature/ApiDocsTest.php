@@ -16,6 +16,20 @@ it('asks for basic auth without credentials', function (string $uri): void {
         ->assertHeader('WWW-Authenticate', 'Basic realm="API Docs"');
 })->with('docs urls');
 
+it('answers a failed login with plain text, even in debug mode', function (string $uri, array $headers): void {
+    config(['app.debug' => true]);
+
+    $response = $this->get($uri, $headers)
+        ->assertUnauthorized()
+        ->assertHeader('WWW-Authenticate', 'Basic realm="API Docs"')
+        ->assertHeader('Content-Type', 'text/plain; charset=UTF-8');
+
+    expect($response->getContent())->toBe('Unauthorized.');
+})->with('docs urls')->with([
+    'browser' => [[]],
+    'json client' => [['Accept' => 'application/json']],
+]);
+
 it('rejects wrong credentials', function (string $uri, string $username, string $password): void {
     $this->withBasicAuth($username, $password)->get($uri)->assertUnauthorized();
 })->with('docs urls')->with([
@@ -43,6 +57,24 @@ it('locks a client out for a minute after 10 failed logins', function (): void {
 
     $this->withBasicAuth('docs-user', 'docs-secret')->get('/docs/api')->assertOk();
 });
+
+it('answers a lockout with plain text, even in debug mode', function (array $headers): void {
+    config(['app.debug' => true]);
+
+    foreach (range(1, 10) as $attempt) {
+        $this->withBasicAuth('docs-user', 'guess-' . $attempt)->get('/docs/api.json')->assertUnauthorized();
+    }
+
+    $response = $this->get('/docs/api.json', $headers)
+        ->assertTooManyRequests()
+        ->assertHeader('Retry-After')
+        ->assertHeader('Content-Type', 'text/plain; charset=UTF-8');
+
+    expect($response->getContent())->toBe('Too Many Attempts.');
+})->with([
+    'browser' => [[]],
+    'json client' => [['Accept' => 'application/json']],
+]);
 
 it('does not count successful logins against the limit', function (): void {
     foreach (range(1, 15) as $attempt) {

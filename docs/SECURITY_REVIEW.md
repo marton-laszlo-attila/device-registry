@@ -6,7 +6,7 @@
 | Baseline | commit `009d2fd` (end of phase F4); file:line references in the findings point to this commit |
 | Scope | the whole repository: the Laravel application in `api/`, `docker-compose.yaml`, `docker/` (nginx, PHP image, MySQL init), `Makefile`, `.github/workflows/ci.yml`, environment templates, git history |
 | Out of scope | vulnerabilities inside third-party packages (covered by `composer audit`), the host machine, a production deployment (there is none) |
-| Result | 18 findings: 7 medium, 10 low, 1 informational. **All fixed**, each with a regression test or a reproducible check. No critical or high finding. 13 intentional decisions documented with their reasons. |
+| Result | 19 findings: 7 medium, 11 low, 1 informational. **All fixed**, each with a regression test or a reproducible check. No critical or high finding. 13 intentional decisions documented with their reasons. |
 
 ## Method
 
@@ -49,6 +49,7 @@
 | F-16 | Foreign key races end in a 500 instead of a 409 | API6 | Low | Fixed |
 | F-17 | Several credential headers are logged in clear text | logging | Low | Fixed |
 | F-18 | Unused file download/upload routes (`storage/{path}`) | API9 | Info | Fixed |
+| F-19 | The documentation's 401 and 429 responses show a stack trace in debug mode | API8 | Low | Fixed |
 
 ### F-01 – Any web page can write to the API · Medium
 
@@ -250,6 +251,16 @@ Integrity is safe (FK `RESTRICT`), but the client got a 500, and the error was l
 ### F-18 – Unused file download/upload routes · Info
 
 `config/filesystems.php:38` (`'serve' => true`) registered `GET` and `PUT storage/{path}`. They require a signed URL (`403` without one), and the application never creates one. Unused surface, so it is switched off (`'serve' => false`). **Test:** `SecurityTest` › inventory: the route list must be exactly the API, the documentation, `/up` and `/`. The Scramble dev-tools asset, which exists only with `APP_DEBUG=true`, is never served without the documentation credentials.
+
+### F-19 – The documentation's 401 and 429 responses show a stack trace in debug mode · Low
+
+Found during the manual check, after the baseline commit.
+
+**Evidence (before):** `DocsBasicAuth` threw an `UnauthorizedHttpException`, and the `docs` limiter threw a `ThrottleRequestsException`. Laravel rendered both as its HTML error page, or, for `Accept: application/json`, as JSON. With `APP_DEBUG=true` (the local default, A-3) that JSON contained `exception`, `file`, `line` and `trace`: `curl -i -H "Accept: application/json" .../docs/api.json` → `401` with the path of the middleware and the full trace, sent to a client that has not authenticated.
+
+**Fix:** neither is an exception any more. `DocsBasicAuth` returns the `401` itself, and the `docs` limiter has its own `response()`. Both are short `text/plain` bodies (`Unauthorized.`, `Too Many Attempts.`), with `WWW-Authenticate` and `Retry-After` unchanged, regardless of `APP_DEBUG`.
+
+**Tests:** `ApiDocsTest` › answers a failed login with plain text, even in debug mode; answers a lockout with plain text, even in debug mode (both for a browser and a JSON client).
 
 ## OWASP API Security Top 10 (2023) and the phase checklist
 

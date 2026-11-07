@@ -35,9 +35,15 @@ class AppServiceProvider extends ServiceProvider
             : Limit::none());
 
         // Only failed logins count, so reading the documentation is never limited,
-        // but guessing its password is.
+        // but guessing its password is. Like the 401 of DocsBasicAuth, the lockout is
+        // plain text, so no error page or debug trace reaches an unauthenticated client.
         RateLimiter::for('docs', fn (Request $request): Limit => Limit::perMinute(10)
             ->by((string) $request->ip())
-            ->after(fn (Response $response): bool => $response->getStatusCode() === Response::HTTP_UNAUTHORIZED));
+            ->after(fn (Response $response): bool => $response->getStatusCode() === Response::HTTP_UNAUTHORIZED)
+            ->response(fn (Request $request, array $headers): Response => response(
+                'Too Many Attempts.',
+                Response::HTTP_TOO_MANY_REQUESTS,
+                ['Content-Type' => 'text/plain; charset=UTF-8', ...$headers],
+            )));
     }
 }
