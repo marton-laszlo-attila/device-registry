@@ -19,6 +19,8 @@ describe('cross-site requests', function (): void {
         'form-urlencoded' => ['application/x-www-form-urlencoded'],
         'multipart' => ['multipart/form-data'],
         'text/plain' => ['text/plain'],
+        'text/plain with a /json parameter' => ['text/plain; x=/json'],
+        'text/plain with a +json parameter' => ['text/plain; x=+json'],
         'no content type' => [''],
     ]);
 

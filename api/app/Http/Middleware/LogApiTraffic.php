@@ -17,14 +17,23 @@ use Throwable;
  * (404, 405) are logged as well. The row is written in terminate(),
  * after the response has been sent to the client.
  *
- * Every stored string is made valid UTF-8 first: a single invalid byte
- * would otherwise make the insert fail, and the request would leave no trace.
+ * Every stored string is made valid UTF-8 first, and the method is cut to
+ * its column: a single invalid byte or an over-long value would otherwise
+ * make the insert fail, and the request would leave no trace.
+ *
+ * A throttled request (429) is stored without its headers and body. The
+ * rate limit does not stop such rows, so each one must stay small.
  */
 final class LogApiTraffic
 {
     private const string MASK = '***';
 
     private const string TRUNCATION_MARKER = '... [truncated]';
+
+    /**
+     * Length of the api_logs.method column.
+     */
+    private const int MAX_METHOD_LENGTH = 10;
 
     /**
      * @param  Closure(Request): (Response)  $next
@@ -40,13 +49,16 @@ final class LogApiTraffic
             return;
         }
 
+        $throttled = $response->getStatusCode() === Response::HTTP_TOO_MANY_REQUESTS;
+
         try {
             ApiLog::query()->create([
-                'method' => $request->method(),
+                // The method actually sent: a `_method` override is not what reached the server.
+                'method' => mb_strcut($this->utf8($request->getRealMethod()), 0, self::MAX_METHOD_LENGTH),
                 'url' => $this->utf8($request->fullUrl()),
                 'status_code' => $response->getStatusCode(),
-                'request_headers' => $this->headers($request),
-                'request_body' => $this->body($request->getContent()),
+                'request_headers' => $throttled ? [] : $this->headers($request),
+                'request_body' => $throttled ? null : $this->body($request->getContent()),
                 'response_body' => $this->body($response->getContent()),
                 'ip' => $request->ip(),
                 'duration_ms' => $this->durationMs($request),

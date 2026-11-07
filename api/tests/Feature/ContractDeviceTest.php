@@ -124,7 +124,9 @@ describe('store', function (): void {
             ->assertJsonValidationErrors(['device_id']);
     })->with([
         'text' => ['abc'],
+        'numeric text' => ['1'],
         'decimal' => [1.5],
+        'boolean' => [true],
         'array' => [[1]],
     ]);
 

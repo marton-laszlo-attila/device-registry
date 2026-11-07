@@ -17,6 +17,9 @@ use Symfony\Component\HttpKernel\Exception\UnsupportedMediaTypeHttpException;
  * bodies without a CORS preflight, and `_method` turns such a POST into a PUT or
  * DELETE. A JSON body always needs a preflight, which the CORS policy refuses for
  * foreign origins. The real method is checked, so `_method` cannot get around it.
+ *
+ * The media type itself is compared, not the whole header: Laravel's isJson() only
+ * looks for "/json" anywhere in it, so "text/plain; x=/json" (no preflight) would pass.
  */
 final class RequireJsonBody
 {
@@ -29,10 +32,21 @@ final class RequireJsonBody
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (in_array($request->getRealMethod(), self::WRITE_METHODS, true) && ! $request->isJson()) {
+        if (in_array($request->getRealMethod(), self::WRITE_METHODS, true) && ! $this->hasJsonBody($request)) {
             throw new UnsupportedMediaTypeHttpException(self::MESSAGE);
         }
 
         return $next($request);
+    }
+
+    /**
+     * application/json or a "+json" type, parameters such as charset ignored.
+     */
+    private function hasJsonBody(Request $request): bool
+    {
+        $contentType = (string) $request->headers->get('Content-Type');
+        $mediaType = strtolower(trim(explode(';', $contentType, 2)[0]));
+
+        return $mediaType === 'application/json' || str_ends_with($mediaType, '+json');
     }
 }

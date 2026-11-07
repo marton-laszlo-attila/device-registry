@@ -18,12 +18,14 @@ class AssignDeviceRequest extends FormRequest
      * The serial number is unique across all contracts: one physical unit
      * can only be on one contract at a time.
      *
+     * The device id is checked strictly: the loose integer rule takes JSON true as 1.
+     *
      * @return array<string, array<int, string>>
      */
     public function rules(): array
     {
         return [
-            'device_id' => ['required', 'integer', 'exists:devices,id'],
+            'device_id' => ['required', 'integer:strict', 'exists:devices,id'],
             'serial_number' => [
                 'required',
                 'string',

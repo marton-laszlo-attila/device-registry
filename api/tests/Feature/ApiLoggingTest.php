@@ -39,6 +39,23 @@ it('logs failed requests too', function (string $method, string $uri, int $statu
     '422 validation' => ['POST', '/api/v1/devices', 422],
 ]);
 
+it('logs the method actually sent, not a _method override', function (): void {
+    $device = Device::factory()->create();
+
+    $this->post("/api/v1/devices/{$device->id}?_method=DELETE")->assertUnsupportedMediaType();
+
+    expect(ApiLog::query()->sole()->method)->toBe('POST');
+    $this->assertModelExists($device);
+});
+
+it('logs a method longer than its column instead of losing the request', function (): void {
+    $this->json('PROPFINDXYZ', '/api/v1/devices')->assertMethodNotAllowed();
+
+    expect(ApiLog::query()->sole())
+        ->method->toBe('PROPFINDXY')
+        ->status_code->toBe(405);
+});
+
 it('stores an empty body as null', function (): void {
     $device = Device::factory()->create();
 

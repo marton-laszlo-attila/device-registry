@@ -19,7 +19,7 @@ down:
 install:
 	$(APP) composer install
 	@test -f api/.env || cp api/.env.example api/.env
-	$(APP) php artisan key:generate --force
+	@grep -q '^APP_KEY=.' api/.env || $(APP) php artisan key:generate --force
 
 migrate:
 	$(APP) php artisan migrate --force

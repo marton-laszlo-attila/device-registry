@@ -70,13 +70,13 @@ Access-Control-Allow-Origin: *
 ```
 
 **Fix.**
-- `app/Http/Middleware/RequireJsonBody.php` (api group): POST, PUT and PATCH must send JSON, otherwise 415. It checks the *real* method, so `_method` cannot get around it. A JSON body always needs a CORS preflight.
+- `app/Http/Middleware/RequireJsonBody.php` (api group): POST, PUT and PATCH must send JSON, otherwise 415. It checks the *real* method, so `_method` cannot get around it. A JSON body always needs a CORS preflight. The media type itself must be `application/json` or `*+json` (final review): Laravel's `isJson()` only searches the header for `/json`, so `text/plain; x=/json`, which a browser sends without a preflight, would have passed.
 - `config/cors.php`: no origin is allowed unless listed in `CORS_ALLOWED_ORIGINS`. The documentation's "Try it" runs on the same origin.
 - Documented in the OpenAPI description ("Request bodies must be JSON …, otherwise 415").
 
 **After:** both requests above → `415 {"message":"The request body must be JSON (Content-Type: application/json)."}`; the preflight carries no `Access-Control-Allow-Origin`.
 
-**Tests:** `SecurityTest` › cross-site requests (form, multipart, text/plain and no content type on POST/PUT/PATCH, `_method` in the query string and in a form field, JSON with charset and `+json` still accepted, CORS refused and allowed); `ErrorHandlingTest` › 415 in the uniform error format.
+**Tests:** `SecurityTest` › cross-site requests (form, multipart, text/plain, text/plain with a `/json` or `+json` parameter and no content type on POST/PUT/PATCH, `_method` in the query string and in a form field, JSON with charset and `+json` still accepted, CORS refused and allowed); `ErrorHandlingTest` › 415 in the uniform error format.
 
 ### F-02 – The unauthenticated API listens on every network interface · Medium
 
@@ -125,7 +125,7 @@ api_logs: neither request appears; the newest row is the POST that created devic
 
 **Evidence (before):** 12 wrong attempts in a row → `401` × 12.
 
-**Fix:** named limiter `docs` (`AppServiceProvider`) in front of `DocsBasicAuth`. Only failed logins (401) count, 10 per minute per client IP, so reading the documentation is never limited. While locked out, the correct password gets 429 as well, so the lockout does not confirm a guess.
+**Fix:** named limiter `docs` (`AppServiceProvider`) in front of `DocsBasicAuth`. Only failed logins (401) count, 10 per minute per client IP, so reading the documentation is never limited. While locked out, the correct password gets 429 as well, so the lockout does not confirm a guess. The limiters count in the `database` cache store (`cache.limiter`, override `CACHE_LIMITER`; final review): the file store increments without a lock, so parallel requests could lose hits and get past the limit. The application cache itself stays on `file`.
 
 **After:** `401` × 10, then `429` with `Retry-After`.
 
@@ -160,10 +160,13 @@ api_logs: neither request appears; the newest row is the POST that created devic
 - `routes/console.php` schedules `model:prune` daily.
 - A new `scheduler` service in `docker-compose.yaml` runs `schedule:work`.
 - The body limit is counted in bytes (`max_body_bytes`, `mb_strcut()` never splits a character).
+- A throttled request (429) is logged without its request headers and body (final review). The limit does not stop such rows, so each one stays small (method, URL, status, response, IP).
+- The logged method is the one actually sent (`getRealMethod()`, not a `_method` override), cut to its 10-character column (final review): an over-long method used to make the insert fail, like the invalid UTF-8 of F-04.
+- The `scheduler` service restarts by itself (`restart: unless-stopped`, final review): on a fresh clone it starts before `make install` and would otherwise stay down.
 
 Worst case is now bounded by rate × row size × retention.
 
-**Tests:** `ApiLoggingTest` › deletes rows older than the retention period, prunes the log every day, truncates by bytes without splitting a character.
+**Tests:** `ApiLoggingTest` › deletes rows older than the retention period, prunes the log every day, truncates by bytes without splitting a character; `ErrorHandlingTest` › limits API requests to 60 per minute (the 429 row has no headers and no body); `ApiLoggingTest` › logs the method actually sent, logs a method longer than its column.
 
 ### F-09 – Any `Host` header is accepted (DNS rebinding) · Low
 

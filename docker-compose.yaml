@@ -24,6 +24,8 @@ services:
   scheduler:
     <<: *php
     command: ["php", "artisan", "schedule:work"]
+    # On a fresh clone it starts before `make install` and exits; it comes back once vendor/ exists.
+    restart: unless-stopped
 
   nginx:
     image: nginx:1.30-alpine

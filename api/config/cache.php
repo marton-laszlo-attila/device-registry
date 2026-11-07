@@ -21,6 +21,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Rate Limiter Cache Store
+    |--------------------------------------------------------------------------
+    |
+    | The store the rate limiters count in, independent of the default one.
+    | The file store increments without a lock, so parallel requests could
+    | lose hits and get past the limit; the database store locks the row.
+    |
+    */
+
+    'limiter' => env('CACHE_LIMITER', 'database'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Cache Stores
     |--------------------------------------------------------------------------
     |

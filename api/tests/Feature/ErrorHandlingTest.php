@@ -168,12 +168,16 @@ it('limits API requests to 60 per minute', function (): void {
         $this->getJson('/api/v1/devices')->assertOk();
     }
 
-    $this->getJson('/api/v1/devices')
+    $this->postJson('/api/v1/devices', ['padding' => str_repeat('x', 1000)])
         ->assertTooManyRequests()
         ->assertHeader('Retry-After')
         ->assertExactJson(['message' => 'Too Many Attempts.']);
 
-    expect(ApiLog::query()->latest('id')->value('status_code'))->toBe(429);
+    // Rejected requests are not limited, so their rows stay small: no headers, no body.
+    expect(ApiLog::query()->latest('id')->firstOrFail())
+        ->status_code->toBe(429)
+        ->request_headers->toBe([])
+        ->request_body->toBeNull();
 });
 
 it('counts unknown API routes against the rate limit too', function (): void {
