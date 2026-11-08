@@ -67,14 +67,14 @@ A "Végső review" szakasz már kész (előző munkamenet), azt hagyd ki.'
 - [x] `docs/openapi.json` újraexportálva, naprakész
 - [x] A `docs/task.txt` anonimizálása: a megszólítás, az aláírás és a telefonszám törlése, a feladatleírás változatlan marad (lásd roadmap README 10. pont)
 - [x] Ellenőrzés: a `.gitignore` csak a generált és titkos fájlokat zárja ki (`.env`, `vendor/`, `coverage/`, cache), a `docs/` teljes tartalma commitolva van
-- [ ] Opcionális git tag: `v1.0.0`
-- [ ] Push, CI zöld
+- [x] Opcionális git tag: `v1.0.0`
+- [x] Push, CI zöld
 
 ## Elfogadási feltételek
 
 - [x] A README alapján egy idegen gépen 5 percen belül fut a projekt
 - [x] A „Requirements coverage" táblázatban a task összes pontja szerepel
-- [ ] CI zöld a `main` branchen
+- [x] CI zöld a `main` branchen
 
 ## Commit(ok)
 
