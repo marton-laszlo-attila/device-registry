@@ -6,7 +6,7 @@
 | Baseline | commit `009d2fd` (end of phase F4); file:line references in the findings point to this commit |
 | Scope | the whole repository: the Laravel application in `api/`, `docker-compose.yaml`, `docker/` (nginx, PHP image, MySQL init), `Makefile`, `.github/workflows/ci.yml`, environment templates, git history |
 | Out of scope | vulnerabilities inside third-party packages (covered by `composer audit`), the host machine, a production deployment (there is none) |
-| Result | 19 findings: 7 medium, 11 low, 1 informational. **All fixed**, each with a regression test or a reproducible check. No critical or high finding. 13 intentional decisions documented with their reasons. |
+| Result | 20 findings: 7 medium, 12 low, 1 informational. **All fixed**, each with a regression test or a reproducible check. No critical or high finding. 13 intentional decisions documented with their reasons. |
 
 ## Method
 
@@ -50,6 +50,7 @@
 | F-17 | Several credential headers are logged in clear text | logging | Low | Fixed |
 | F-18 | Unused file download/upload routes (`storage/{path}`) | API9 | Info | Fixed |
 | F-19 | The documentation's 401 and 429 responses show a stack trace in debug mode | API8 | Low | Fixed |
+| F-20 | The API's 405, 415 and 429 responses show a stack trace in debug mode | API8 | Low | Fixed |
 
 ### F-01 – Any web page can write to the API · Medium
 
@@ -265,6 +266,16 @@ Found during the manual check, after the baseline commit.
 
 **Tests:** `ApiDocsTest` › answers a failed login with plain text, even in debug mode; answers a lockout with plain text, even in debug mode (both for a browser and a JSON client).
 
+### F-20 – The API's 405, 415 and 429 responses show a stack trace in debug mode · Low
+
+Found during the manual test (F7), after the baseline commit.
+
+**Evidence (before):** only the 404 and the business rule errors (409) had their own rendering. The other client errors of the API came from Laravel's default JSON rendering, which adds `exception`, `file`, `line` and `trace` when `APP_DEBUG=true`, the default of `api/.env.example` (A-3). A reviewer who starts the project from the template sees it with one request: `curl -i -X DELETE .../api/v1/devices` → `405` with the full trace and the paths of the server.
+
+**Fix:** every client error (`4xx`) of the API is rendered as `{"message": ...}` by one rule in `bootstrap/app.php`, regardless of `APP_DEBUG`, with its headers (`Allow`, `Retry-After`) kept. A trace says nothing to a client about its own mistake. Server errors (`5xx`) keep the trace in debug mode, where the developer needs it; with `APP_DEBUG=false` they are `{"message": "Server Error"}` as before.
+
+**Tests:** `ErrorHandlingTest` › in debug mode › hides debug details on client errors only (404, 405, 409, 415, 422, and a 500 that keeps its trace); keeps the headers of client errors.
+
 ## OWASP API Security Top 10 (2023) and the phase checklist
 
 | # | Area | Result | Evidence |
@@ -289,7 +300,7 @@ Found during the manual check, after the baseline commit.
 |---|---|---|
 | A-1 | **No authentication on the API.** | The task requires Basic Auth for the documentation only, and the WD contact confirmed that everything beyond the written requirements is our call. The risk is contained instead: reachable from this machine only (F-02), not drivable by other web pages (F-01, F-09), rate limited, fully logged. For real use see the recommendations. |
 | A-2 | BOLA tests are limited to the scoped binding. | There are no users, so there is nothing to own; the only parent–child boundary (contract → assignment) is enforced and tested. |
-| A-3 | `api/.env.example` keeps `APP_ENV=local` and `APP_DEBUG=true`. | It is the template for local development, where stack traces help. With debug on, error responses contain traces; tests pin the production behaviour (`APP_DEBUG=false` → no trace, no file, no internal message). Production must set `APP_ENV=production` and `APP_DEBUG=false`. |
+| A-3 | `api/.env.example` keeps `APP_ENV=local` and `APP_DEBUG=true`. | It is the template for local development, where stack traces help. With debug on, only server errors (5xx) contain traces, client errors never do (F-19, F-20); tests pin the production behaviour (`APP_DEBUG=false` → no trace, no file, no internal message). Production must set `APP_ENV=production` and `APP_DEBUG=false`. |
 | A-4 | MySQL stays published, on `127.0.0.1:3307` only. | The phase plan asked for an unpublished database. A loopback binding is not reachable from other hosts and lets developers use a local database client; it now needs the random password from `.env`. Remove the `ports` entry if no client is needed. |
 | A-5 | CI uses fixed database passwords (`root` / `secret`). | The MySQL service of a GitHub Actions job is throwaway, reachable only from that runner, and holds test data. The workflow has `permissions: contents: read`, runs on `pull_request` (not `pull_request_target`) and uses no secrets. |
 | A-6 | The documentation UI loads Stoplight Elements 8.4.2 from unpkg without SRI; `/up` loads Tailwind from jsdelivr. | Both views ship with Scramble and Laravel. The Elements version is pinned and the page is behind Basic Auth. Self-hosting or adding SRI means overriding vendor views. |

@@ -68,6 +68,28 @@ it('renders every API error as consistent JSON', function (TestResponse $respons
         : $response->assertJsonMissingPath('errors');
 })->with('api errors');
 
+describe('in debug mode', function (): void {
+    beforeEach(function (): void {
+        config(['app.debug' => true]);
+    });
+
+    it('hides debug details on client errors only', function (TestResponse $response, int $status): void {
+        $response->assertStatus($status);
+
+        $debugKeys = array_intersect(['exception', 'trace', 'file', 'line'], array_keys($response->json()));
+
+        // A client error is the client's mistake: a trace would only expose internals. A server
+        // error keeps its trace in debug mode, because that is what the developer needs.
+        expect($debugKeys)->toEqualCanonicalizing($status >= 500 ? ['exception', 'file', 'line', 'trace'] : []);
+    })->with('api errors');
+
+    it('keeps the headers of client errors', function (): void {
+        $this->deleteJson('/api/v1/devices')
+            ->assertMethodNotAllowed()
+            ->assertHeader('Allow', 'GET, HEAD, POST');
+    });
+});
+
 it('answers JSON without an Accept header', function (): void {
     $this->get('/api/v1/devices/999999')
         ->assertNotFound()

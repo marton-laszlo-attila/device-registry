@@ -206,6 +206,8 @@ Every error of the API has the same shape; `errors` is present on validation fai
 | 429 | rate limit: 60 requests per minute per IP |
 | 500 | unexpected error; no trace and no internal message unless `APP_DEBUG=true` |
 
+Client errors (4xx) never contain debug details, not even with `APP_DEBUG=true`: only server errors show a trace in debug mode.
+
 ## API traffic logging
 
 The `LogApiTraffic` middleware stores every request under `/api` and its response in the `api_logs` table, in `terminate()`, after the response has been sent. Unknown routes (404, 405) and throttled requests (429, stored without headers and body, to keep such rows small) are logged too. A logging failure never changes the API response.

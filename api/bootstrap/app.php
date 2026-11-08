@@ -14,6 +14,8 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\ThrottleRequests;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -39,7 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Every error of the API is JSON: { "message": ..., "errors": {...} } (errors only on 422).
-        // Validation (422), 405, 415, 429 and 500 already come in this shape from Laravel.
+        // Validation (422) and 500 already come in this shape from Laravel.
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
@@ -70,6 +72,19 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (NotFoundHttpException $e, Request $request) {
             if ($request->is('api/*')) {
                 return response()->json(['message' => 'Resource not found.'], $e->getStatusCode());
+            }
+
+            return null;
+        });
+
+        // The other client errors (405, 415, 429 ...) never carry debug details: the client made the
+        // mistake, so a trace would only expose internals. Server errors keep it in debug mode.
+        // Registered after the 404 above, which must win for its own exceptions.
+        $exceptions->render(function (HttpExceptionInterface $e, Request $request) {
+            if ($request->is('api/*') && $e->getStatusCode() < 500) {
+                $message = $e->getMessage() !== '' ? $e->getMessage() : Response::$statusTexts[$e->getStatusCode()];
+
+                return response()->json(['message' => $message], $e->getStatusCode(), $e->getHeaders());
             }
 
             return null;
