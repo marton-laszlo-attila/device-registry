@@ -175,7 +175,7 @@ Előfeltétel: a 2. és 3. szakaszban létrehozott `DEVICE_ID` és `CONTRACT_ID`
   - 📖 ugyanott, body: `{"device_id": <eszköz id>, "serial_number": "SN-0001"}`
   - ⌨️ `apij -X POST $API/contracts/$CONTRACT_ID/devices -d "{\"device_id\":$DEVICE_ID,\"serial_number\":\"SN-0001\"}" | jq .errors`
   - ✅ `422`, a hiba a `serial_number` mezőn van
-- [ ] **Második szerződés létrehozása** a következő lépésekhez
+- [x] **Második szerződés létrehozása** a következő lépésekhez
   - 📖 *Create a contract*, body: `{"contract_number":"SZ-2026-002","partner_name":"Másik Bt.","start_date":"2026-02-01","status":"active"}`
   - ⌨️
     ```bash
@@ -309,23 +309,29 @@ Csak terminálból. A MySQL jelszót a konténer a saját környezetéből veszi
 
 ## 9. Biztonság
 
-- [ ] Az F5 „Kézi biztonsági ellenőrzés" listája kipipálva
-- [ ] A `docs/SECURITY_REVIEW.md` létezik, és nincs nyitott magas súlyosságú találat
+- [x] Az F5 „Kézi biztonsági ellenőrzés" listája kipipálva
+- [x] A `docs/SECURITY_REVIEW.md` létezik, és nincs nyitott magas súlyosságú találat
 
 ## 10. Repó és átadás
 
-- [ ] A README minden linkje működik a GitHubon (a Mermaid diagram is megjelenik)
-- [ ] Nincs a repóban `.env`, `vendor/`, `coverage/`, és a `docs/task.txt`-ben nincs személyes adat (telefonszám, aláírás)
-- [ ] A `docs/roadmap/` és a `docs/task.txt` megjelenik a GitHubon, és a README „Development process" szakaszának linkjei működnek
-- [ ] A commit történet olvasható (Conventional Commits)
-- [ ] Ha a levélre jött válasz, az abban kértek teljesülnek
-- [ ] **Kísérő levél** a technikai kapcsolattartóknak (másolatban a HR-es kollégának), a határidő előtt. Tartalma:
-  - [ ] a publikus repó linkje
-  - [ ] indítás egy mondatban (`docker compose up` + README Quick start)
-  - [ ] a dokumentáció URL-je és a Basic Auth adatok helye (`.env.example`)
-  - [ ] **jelzés, hogy a fejlesztési folyamat is dokumentálva van**: a `docs/roadmap/` könyvtárban a fázisokra bontott terv, a döntések indoklása és a manuális tesztforgatókönyv; a `docs/SECURITY_REVIEW.md`-ben a biztonsági átvilágítás
-  - [ ] a fontosabb saját döntések 2–3 pontban (pl. gyári szám a kapcsolótáblán, 409 törlésnél, service interface-ek)
+- [x] A README minden linkje működik a GitHubon (a Mermaid diagram is megjelenik)
+- [x] Nincs a repóban `.env`, `vendor/`, `coverage/`, és a `docs/task.txt`-ben nincs személyes adat (telefonszám, aláírás)
+- [x] A `docs/roadmap/` és a `docs/task.txt` megjelenik a GitHubon, és a README „Development process" szakaszának linkjei működnek
+- [x] A commit történet olvasható (Conventional Commits)
+- [x] Ha a levélre jött válasz, az abban kértek teljesülnek
+- [x] **Kísérő levél** a technikai kapcsolattartóknak (másolatban a HR-es kollégának), a határidő előtt. Tartalma:
+  - [x] a publikus repó linkje
+  - [x] indítás egy mondatban (`docker compose up` + README Quick start)
+  - [x] a dokumentáció URL-je és a Basic Auth adatok helye (`.env.example`)
+  - [x] **jelzés, hogy a fejlesztési folyamat is dokumentálva van**: a `docs/roadmap/` könyvtárban a fázisokra bontott terv, a döntések indoklása és a manuális tesztforgatókönyv; a `docs/SECURITY_REVIEW.md`-ben a biztonsági átvilágítás
+  - [x] a fontosabb saját döntések 2–3 pontban (pl. gyári szám a kapcsolótáblán, 409 törlésnél, service interface-ek)
 
 ---
 
-**Eredmény:** ___ / ___ sikeres · Eltérések: …
+**Eredmény (2026-11-08):** 80 / 80 pont sikeres.
+
+**Eltérések a teszt közben:** kettő, mindkettő javítva, regressziós teszttel, és a javított kódon újra ellenőrizve:
+- a lapozási linkekből kimaradt a `per_page` (`3d00c07 fix: keep the page size in pagination links`);
+- az API 405-ös, 415-ös és 429-es válasza debug módban stack trace-t mutatott (`cb0ae4b`, SECURITY_REVIEW F-20).
+
+A forgatókönyv két hibáját is javítottuk: a Try It panel előre kitöltött body-ja miatti figyelmeztetés bekerült a bevezetőbe, és a „Nincs belső információ" pont most a 405-öt és a 415-öt is ellenőrzi.
