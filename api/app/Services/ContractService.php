@@ -14,7 +14,8 @@ final class ContractService implements ContractServiceInterface
 {
     public function list(int $perPage, int $page): LengthAwarePaginator
     {
-        return Contract::query()->orderBy('id')->paginate($perPage, page: $page);
+        // The page size goes into the pagination links, otherwise following one falls back to the default size.
+        return Contract::query()->orderBy('id')->paginate($perPage, page: $page)->appends(['per_page' => $perPage]);
     }
 
     public function create(array $data): Contract

@@ -13,7 +13,8 @@ final class DeviceService implements DeviceServiceInterface
 {
     public function list(int $perPage, int $page): LengthAwarePaginator
     {
-        return Device::query()->orderBy('id')->paginate($perPage, page: $page);
+        // The page size goes into the pagination links, otherwise following one falls back to the default size.
+        return Device::query()->orderBy('id')->paginate($perPage, page: $page)->appends(['per_page' => $perPage]);
     }
 
     public function create(array $data): Device

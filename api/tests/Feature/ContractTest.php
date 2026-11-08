@@ -46,6 +46,16 @@ describe('index', function (): void {
             ->assertJsonMissingPath('data.0.devices');
     });
 
+    it('keeps the page size in the pagination links', function (): void {
+        Contract::factory()->count(5)->create();
+
+        $response = $this->getJson('/api/v1/contracts?per_page=2&page=2')->assertOk();
+
+        foreach (['first', 'last', 'prev', 'next'] as $link) {
+            expect($response->json("links.{$link}"))->toContain('per_page=2');
+        }
+    });
+
     it('clamps per_page to 100', function (): void {
         $this->getJson('/api/v1/contracts?per_page=1000')
             ->assertOk()

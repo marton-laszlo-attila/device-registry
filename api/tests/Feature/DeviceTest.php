@@ -46,6 +46,21 @@ describe('index', function (): void {
             ->assertJsonPath('data.0.id', $ids[4]);
     });
 
+    it('keeps the page size in the pagination links', function (): void {
+        Device::factory()->count(5)->create();
+
+        $response = $this->getJson('/api/v1/devices?per_page=2&page=2')->assertOk();
+
+        foreach (['first', 'last', 'prev', 'next'] as $link) {
+            expect($response->json("links.{$link}"))->toContain('per_page=2');
+        }
+
+        // The links follow the clamped value, and carry no other query parameter of the request.
+        expect($this->getJson('/api/v1/devices?per_page=1000&junk=1')->json('links.first'))
+            ->toContain('per_page=100')
+            ->not->toContain('junk');
+    });
+
     it('returns an empty page beyond the last one', function (): void {
         Device::factory()->count(2)->create();
 
